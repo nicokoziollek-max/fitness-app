@@ -14,8 +14,9 @@
 ## Coach-Portal
 
 - Zentrale Klientendaten aus Supabase statt Demo-Daten laden
-- Check-in Inbox und Aufgaben-/Follow-up-Workflow
+- Check-in Inbox und Aufgaben-/Follow-up-Workflow mit echten Statuswechseln synchronisieren
 - Vertrags-, Paket- und Zahlungsverwaltung
 - Coach-Kommentare und Kommunikation mit der Klienten-App
 - Alerts fuer Recovery, Compliance, Plateaus und verpasste Check-ins
 - Fortschrittsberichte und Export pro Klient
+- Praesentationsmodus mit gespeicherten Video-Links und versendetem Review-Status erweitern

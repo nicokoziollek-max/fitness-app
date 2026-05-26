@@ -1,4 +1,4 @@
-const CACHE = "nh-training-v4";
+const CACHE = "nh-training-v5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -6,6 +6,7 @@ const ASSETS = [
   "./app.js",
   "./manifest.webmanifest",
   "./assets/icon.svg",
+  "./assets/profile-nicolas.jpg",
   "./data/fitness-data.js",
 ];
 

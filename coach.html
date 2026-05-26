@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NH Coach Hub | Klientenübersicht</title>
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="coach.css">
+  </head>
+  <body>
+    <div class="coach-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">NH</span>
+          <div>
+            <p class="caption">Coach Portal</p>
+            <h1>Performance</h1>
+          </div>
+        </div>
+        <nav class="side-nav" aria-label="Coach Navigation">
+          <button class="active">Dashboard</button>
+          <button>Klienten</button>
+          <button>Check-ins</button>
+          <button>Programme</button>
+          <button>Abrechnung</button>
+        </nav>
+        <article class="side-card">
+          <p class="caption">Monatlicher Umsatz</p>
+          <strong id="sidebar-revenue"></strong>
+          <p class="muted">Aktive Coachings</p>
+        </article>
+        <a class="client-app-link" href="./">Klienten-App öffnen</a>
+      </aside>
+      <main class="dashboard">
+        <header class="dashboard-header">
+          <div>
+            <p class="caption">Coach Dashboard</p>
+            <h2>Klientenübersicht</h2>
+          </div>
+          <div class="header-actions">
+            <label class="search">Suche <input id="client-search" type="search" placeholder="Klient suchen"></label>
+            <button class="primary">+ Neuer Klient</button>
+          </div>
+        </header>
+        <section class="summary-grid" id="portfolio-summary"></section>
+        <div class="content-grid">
+          <section class="client-panel">
+            <div class="section-head">
+              <div>
+                <p class="caption">Portfolio</p>
+                <h3>Klienten</h3>
+              </div>
+              <span class="pill">Live + Demo</span>
+            </div>
+            <div class="client-list" id="client-list"></div>
+          </section>
+          <section class="profile-panel" id="profile-panel"></section>
+        </div>
+      </main>
+    </div>
+    <script src="data/fitness-data.js"></script>
+    <script src="coach.js"></script>
+  </body>
+</html>

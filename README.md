@@ -12,6 +12,11 @@ Mobile-first Web-App aus den Excel-Trainingsplaenen und dem Data Tracker.
 - Feedback-Bereich fuer gespeicherte Verbesserungsnotizen zur App
 - Wochenfortschritt je Meso mit erledigten Sessions
 - Installierbare PWA fuer das Smartphone
+- Separate Desktop-Coach-Ansicht mit Klientenportfolio und Handlungsempfehlungen
+
+## Coach-Ansicht
+
+Nach dem Start ist die Coach-Ansicht unter `http://localhost:4188/coach.html` erreichbar. Nicolas verwendet importierte Verlaufdaten; die weiteren Profile sind Beispieldaten fuer die Dashboard-Vorschau.
 
 ## Lokal starten
 

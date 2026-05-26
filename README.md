@@ -9,6 +9,7 @@ Mobile-first Web-App aus den Excel-Trainingsplaenen und dem Data Tracker.
 - Live-Workout mit Satz-Logging, RIR und Rest-Timer
 - Analyseansicht fuer Wachstum, Recovery, Trainingsvolumen und e1RM
 - Tracker mit schnellen Daily Check-ins inklusive Energie, Stress und Verdauung
+- Feedback-Bereich fuer gespeicherte Verbesserungsnotizen zur App
 - Wochenfortschritt je Meso mit erledigten Sessions
 - Installierbare PWA fuer das Smartphone
 
@@ -20,4 +21,4 @@ Im Ordner `C:\Users\Nico\Documents\Fitnessapp` einen lokalen Webserver starten:
 python -m http.server 4188
 ```
 
-Danach im Browser `http://localhost:4188` oeffnen. Neue Eintraege und geloggte Workouts werden lokal im Browser gespeichert; die aus Excel uebernommenen Basisdaten bleiben unveraendert.
+Danach im Browser `http://localhost:4188` oeffnen. Neue Eintraege, geloggte Workouts und Verbesserungsnotizen werden lokal im Browser gespeichert; die aus Excel uebernommenen Basisdaten bleiben unveraendert.

@@ -1,4 +1,4 @@
-const CACHE = "nh-training-v2";
+const CACHE = "nh-training-v3";
 const ASSETS = [
   "./",
   "./index.html",

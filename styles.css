@@ -834,7 +834,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   display: block;
   width: 100%;
   margin-top: 7px;
@@ -843,6 +844,56 @@ select {
   border-radius: 11px;
   background: var(--surface-2);
   color: var(--text);
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.feedback-card {
+  margin-bottom: 18px;
+}
+
+.feedback-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.storage-note {
+  margin: 13px 0;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: rgba(255, 188, 116, 0.11);
+  color: var(--orange);
+  font-size: 12px;
+}
+
+.feedback-item {
+  margin-top: 9px;
+  padding: 11px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.feedback-item strong {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.feedback-item p {
+  margin-top: 7px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.remove-note {
+  border: 0;
+  background: none;
+  color: var(--red);
+  font-size: 12px;
 }
 
 .input-row {

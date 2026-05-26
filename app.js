@@ -1,6 +1,7 @@
 const sourceData = window.FITNESS_DATA;
 const savedEntries = JSON.parse(localStorage.getItem("nh-training-entries") || "[]");
 const workoutLogs = JSON.parse(localStorage.getItem("nh-workout-logs") || "[]");
+const improvementNotes = JSON.parse(localStorage.getItem("nh-improvement-notes") || "[]");
 const state = {
   tab: "home",
   meso: Number(localStorage.getItem("nh-active-meso") || 4),
@@ -262,10 +263,26 @@ function progress() {
 
 function tracker() {
   const recent = [...state.entries].reverse().slice(0, 14);
+  const notes = [...improvementNotes].reverse();
   return `
     <div class="section-head"><div><p class="eyebrow">Data Tracker</p><h2>Tägliche Logs</h2></div><button class="link-button" data-new-entry>+ Neu</button></div>
     <article class="card">
       <p class="helper">${state.entries.length} Check-ins · Datenbasis ${formatDate(state.entries[0].date)} bis ${formatDate(latest().date)}</p>
+    </article>
+    <article class="card feedback-card">
+      <div class="section-head"><div><p class="eyebrow">App Feedback</p><h3>Verbesserungen notieren</h3></div><span class="helper">${notes.length} gespeichert</span></div>
+      <form id="feedback-form" class="feedback-form">
+        <label>Anmerkung
+          <textarea name="note" rows="3" maxlength="500" placeholder="Was soll an der App verbessert werden?" required></textarea>
+        </label>
+        <button class="primary-button" type="submit">Bemerkung speichern</button>
+      </form>
+      <p class="storage-note">Aktuell nur auf diesem Gerät gespeichert.</p>
+      <div class="feedback-list">${notes.length ? notes.map((note) => `
+        <div class="feedback-item">
+          <div class="row"><strong>${formatDate(note.date)}</strong><button type="button" class="remove-note" data-remove-note="${note.id}">Löschen</button></div>
+          <p>${escapeHtml(note.text)}</p>
+        </div>`).join("") : `<p class="helper">Noch keine Bemerkungen gespeichert.</p>`}</div>
     </article>
     ${recent.map((entry) => `<article class="day-card">
       <div><strong>${formatDate(entry.date)} ${entry.session ? `· ${entry.session}` : ""}</strong>
@@ -273,6 +290,16 @@ function tracker() {
       </div>
       <span class="weight">${formatValue(entry.weight)} kg</span>
     </article>`).join("")}`;
+}
+
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
 }
 
 function render() {
@@ -365,12 +392,20 @@ app.addEventListener("click", (event) => {
   const metric = event.target.closest("[data-metric]");
   const start = event.target.closest("[data-start-session]");
   const weekShift = event.target.closest("[data-week-shift]");
+  const removeNote = event.target.closest("[data-remove-note]");
   if (start) {
     openWorkout(start.dataset.startSession);
     return;
   }
   if (event.target.closest("[data-new-entry]")) {
     openEntry();
+    return;
+  }
+  if (removeNote) {
+    const noteIndex = improvementNotes.findIndex((note) => note.id === removeNote.dataset.removeNote);
+    if (noteIndex >= 0) improvementNotes.splice(noteIndex, 1);
+    localStorage.setItem("nh-improvement-notes", JSON.stringify(improvementNotes));
+    render();
     return;
   }
   if (link) state.tab = link.dataset.go;
@@ -385,6 +420,20 @@ app.addEventListener("click", (event) => {
   if (workout) workout.closest(".workout-card").classList.toggle("open");
   if (metric) state.metric = metric.dataset.metric;
   if (link || meso || weekShift || metric) render();
+});
+
+app.addEventListener("submit", (event) => {
+  if (event.target.id !== "feedback-form") return;
+  event.preventDefault();
+  const noteText = new FormData(event.target).get("note").trim();
+  if (!noteText) return;
+  improvementNotes.push({
+    id: String(Date.now()),
+    date: todayIso(),
+    text: noteText,
+  });
+  localStorage.setItem("nh-improvement-notes", JSON.stringify(improvementNotes));
+  render();
 });
 
 entryForm.addEventListener("input", (event) => {

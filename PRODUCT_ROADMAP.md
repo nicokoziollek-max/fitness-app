@@ -20,3 +20,4 @@
 - Alerts fuer Recovery, Compliance, Plateaus und verpasste Check-ins
 - Fortschrittsberichte und Export pro Klient
 - Praesentationsmodus mit gespeicherten Video-Links und versendetem Review-Status erweitern
+- Zentrale Brand-Einstellungen und White-Labeling pro Coach-Account synchronisieren

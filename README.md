@@ -18,7 +18,7 @@ Mobile-first Web-App aus den Excel-Trainingsplaenen und dem Data Tracker.
 
 Nach dem Start ist die Coach-Ansicht unter `http://localhost:4188/coach.html` erreichbar. Nicolas verwendet importierte Verlaufdaten; die weiteren Profile sind Beispieldaten fuer die Dashboard-Vorschau.
 
-Die Coach-Ansicht umfasst Dashboard, Klientenanalysen, priorisierte Check-in-Inbox, Programm- und Abrechnungsansichten sowie einen Praesentationsmodus pro Klient fuer aufgezeichnete Video-Reviews.
+Die Coach-Ansicht umfasst Dashboard, Klientenanalysen, priorisierte Check-in-Inbox, Programm- und Abrechnungsansichten sowie einen Praesentationsmodus pro Klient fuer aufgezeichnete Video-Reviews. Unter Einstellungen lassen sich Brandfarben live testen und lokal speichern.
 
 ## Lokal starten
 

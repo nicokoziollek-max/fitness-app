@@ -1,5 +1,22 @@
 const imported = window.FITNESS_DATA;
 const reviewState = JSON.parse(localStorage.getItem("nh-coach-review-state") || "{}");
+const themePresets = {
+  lime: { name: "Performance Lime", accent: "#b7f348", rgb: "183, 243, 72", ink: "#152009" },
+  cyan: { name: "Electric Cyan", accent: "#42e3e7", rgb: "66, 227, 231", ink: "#061a1b" },
+  violet: { name: "Coach Violet", accent: "#a98bff", rgb: "169, 139, 255", ink: "#120d26" },
+  orange: { name: "Energy Orange", accent: "#ffad42", rgb: "255, 173, 66", ink: "#201204" },
+  rose: { name: "Pulse Rose", accent: "#ff6ea8", rgb: "255, 110, 168", ink: "#250812" },
+  blue: { name: "Focus Blue", accent: "#5799ff", rgb: "87, 153, 255", ink: "#071328" },
+};
+const savedCoachSettings = JSON.parse(localStorage.getItem("nh-coach-settings") || "{}");
+const settings = {
+  theme: savedCoachSettings.theme || "lime",
+  customColor: savedCoachSettings.customColor || "#b7f348",
+  useCustom: Boolean(savedCoachSettings.useCustom),
+  compact: Boolean(savedCoachSettings.compact),
+  showRevenue: savedCoachSettings.showRevenue !== false,
+  loomHints: savedCoachSettings.loomHints !== false,
+};
 
 function round(value, digits = 1) {
   const factor = 10 ** digits;
@@ -79,6 +96,35 @@ function selectedClient() {
   return clients.find((client) => client.id === selectedClientId);
 }
 
+function hexToRgb(hex) {
+  const raw = hex.replace("#", "");
+  const value = raw.length === 3 ? raw.split("").map((character) => character + character).join("") : raw;
+  const number = Number.parseInt(value, 16);
+  return `${(number >> 16) & 255}, ${(number >> 8) & 255}, ${number & 255}`;
+}
+
+function contrastInk(hex) {
+  const values = hexToRgb(hex).split(", ").map(Number);
+  const luminance = (values[0] * 299 + values[1] * 587 + values[2] * 114) / 1000;
+  return luminance > 150 ? "#152009" : "#f5faf7";
+}
+
+function activeTheme() {
+  if (settings.useCustom) {
+    return { name: "Custom", accent: settings.customColor, rgb: hexToRgb(settings.customColor), ink: contrastInk(settings.customColor) };
+  }
+  return themePresets[settings.theme];
+}
+
+function applySettings() {
+  const theme = activeTheme();
+  document.documentElement.style.setProperty("--accent", theme.accent);
+  document.documentElement.style.setProperty("--accent-rgb", theme.rgb);
+  document.documentElement.style.setProperty("--accent-ink", theme.ink);
+  document.body.classList.toggle("compact-mode", settings.compact);
+  localStorage.setItem("nh-coach-settings", JSON.stringify(settings));
+}
+
 function trendFor(client) {
   return round(average(client.weights.slice(-7)) - average(client.weights.slice(-14, -7)));
 }
@@ -143,12 +189,12 @@ function renderSummary() {
   const attention = clients.filter((client) => client.status !== "active").length;
   const avgAdherence = average(clients.map((client) => client.adherence));
   const unpaid = clients.filter((client) => !client.paid).length;
-  document.getElementById("sidebar-revenue").textContent = `${formatNumber(revenue, 0)} €`;
+  document.getElementById("sidebar-revenue").textContent = settings.showRevenue ? `${formatNumber(revenue, 0)} €` : "•••• €";
   document.getElementById("portfolio-summary").innerHTML = `
     <article class="summary-card"><p class="caption">Aktive Klienten</p><strong>${clients.length}</strong><p class="muted">1 Live · ${clients.length - 1} Demo</p></article>
     <article class="summary-card good"><p class="caption">Adhärenz Ø</p><strong>${formatNumber(avgAdherence, 0)}%</strong><p class="muted">Letzte 4 Wochen</p></article>
     <article class="summary-card attention"><p class="caption">Follow-ups</p><strong>${attention}</strong><p class="muted">Coach-Aktion notwendig</p></article>
-    <article class="summary-card ${unpaid ? "attention" : ""}"><p class="caption">Monthly Revenue</p><strong>${formatNumber(revenue, 0)} €</strong><p class="muted">${unpaid} Zahlung offen</p></article>`;
+    <article class="summary-card ${unpaid ? "attention" : ""}"><p class="caption">Monthly Revenue</p><strong>${settings.showRevenue ? `${formatNumber(revenue, 0)} €` : "•••• €"}</strong><p class="muted">${unpaid} Zahlung offen</p></article>`;
 }
 
 function renderClientList(query = "") {
@@ -326,7 +372,7 @@ function billingView() {
       </div>`).join("")}</div>
     </article>
     <article class="workspace-card">
-      <p class="caption">Revenue Health</p><h3>${formatNumber(revenue, 0)} € MRR</h3>
+      <p class="caption">Revenue Health</p><h3>${settings.showRevenue ? `${formatNumber(revenue, 0)} €` : "•••• €"} MRR</h3>
       <div class="metric-list" style="margin-top:18px;">
         <div class="metric-line"><span>Gezahlt</span><strong>${formatNumber(paid, 0)} €</strong></div>
         <div class="metric-line"><span>Offen</span><strong>${formatNumber(revenue - paid, 0)} €</strong></div>
@@ -337,6 +383,45 @@ function billingView() {
   </div>`;
 }
 
+function settingsView() {
+  const theme = activeTheme();
+  return `<div class="settings-grid">
+    <article class="settings-card">
+      <p class="caption">Branding</p>
+      <h3>Brand Color</h3>
+      <p class="muted">Ändert Akzente, Charts, aktive Zustände und deinen Loom-Präsentationsmodus live.</p>
+      <div class="theme-swatches">
+        ${Object.entries(themePresets).map(([key, preset]) => `<button class="theme-swatch ${!settings.useCustom && settings.theme === key ? "selected" : ""}" data-theme="${key}">
+          <span class="swatch-dot" style="--swatch:${preset.accent}"></span>
+          <span><strong>${preset.name}</strong><span>${preset.accent}</span></span>
+        </button>`).join("")}
+      </div>
+      <div class="custom-color-row">
+        <label>Eigene Farbe<input id="custom-brand-color" type="color" value="${settings.customColor}"></label>
+        <button class="ghost accent ${settings.useCustom ? "selected" : ""}" data-use-custom>Custom anwenden</button>
+        <button class="ghost" data-reset-theme>Grün zurücksetzen</button>
+      </div>
+    </article>
+    <section>
+      <article class="settings-preview">
+        <div class="preview-header"><span class="preview-logo">Coach Portal</span><span class="tag">Preview</span></div>
+        <p class="caption">Current Brand</p>
+        <div class="preview-metric"><span>${theme.name}</span></div>
+        <div class="preview-track"><span style="width:74%;"></span></div>
+        <div class="quick-actions"><button><strong>Review aufnehmen</strong><span>Loom-ready</span></button><button><strong>Klient öffnen</strong><span>Insights</span></button></div>
+      </article>
+      <article class="settings-card" style="margin-top:14px;">
+        <p class="caption">Ansicht</p><h3>Portal-Optionen</h3>
+        <div class="settings-options">
+          <div class="settings-toggle"><div><strong>Kompakte Tabellen</strong><p>Mehr Klienten auf einmal sehen</p></div><button class="toggle ${settings.compact ? "active" : ""}" data-setting="compact"></button></div>
+          <div class="settings-toggle"><div><strong>Umsatz anzeigen</strong><p>MRR im Dashboard einblenden</p></div><button class="toggle ${settings.showRevenue ? "active" : ""}" data-setting="showRevenue"></button></div>
+          <div class="settings-toggle"><div><strong>Loom-Hinweise</strong><p>Talking Points im Präsentationsmodus</p></div><button class="toggle ${settings.loomHints ? "active" : ""}" data-setting="loomHints"></button></div>
+        </div>
+      </article>
+    </section>
+  </div>`;
+}
+
 function renderWorkspace() {
   const title = {
     dashboard: "Klientenübersicht",
@@ -344,10 +429,11 @@ function renderWorkspace() {
     checkins: "Check-in Inbox",
     programs: "Programme",
     billing: "Abrechnung",
+    settings: "Einstellungen",
   }[selectedView];
   document.querySelector(".dashboard-header h2").textContent = title;
   document.querySelectorAll(".side-nav [data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === selectedView));
-  const views = { dashboard: dashboardView, clients: clientsView, checkins: checkinsView, programs: programsView, billing: billingView };
+  const views = { dashboard: dashboardView, clients: clientsView, checkins: checkinsView, programs: programsView, billing: billingView, settings: settingsView };
   document.getElementById("workspace").innerHTML = views[selectedView]();
 }
 
@@ -398,7 +484,7 @@ function renderPresentation() {
   document.getElementById("presentation-content").innerHTML = `<div class="present-shell">
     <header class="present-header">
       <div class="present-client"><span class="avatar">${client.initials}</span><div><p class="caption">Client Review Presentation</p><h2>${client.name}</h2><p class="muted">${client.goal} · ${client.plan}</p></div></div>
-      <div class="present-controls"><span class="record-badge"><span class="record-dot"></span>Loom-ready</span><button class="ghost" data-present-close>Schließen</button></div>
+      <div class="present-controls">${settings.loomHints ? `<span class="record-badge"><span class="record-dot"></span>Loom-ready</span>` : ""}<button class="ghost" data-present-close>Schließen</button></div>
     </header>
     <main class="present-stage">${slides[presentationSlide]}</main>
     <footer class="present-footer">
@@ -429,6 +515,39 @@ document.getElementById("workspace").addEventListener("click", (event) => {
   const present = event.target.closest("[data-present]");
   const review = event.target.closest("[data-review]");
   const filter = event.target.closest("[data-checkin-filter]");
+  const theme = event.target.closest("[data-theme]");
+  const toggle = event.target.closest("[data-setting]");
+  if (theme) {
+    settings.theme = theme.dataset.theme;
+    settings.useCustom = false;
+    applySettings();
+    renderSummary();
+    renderWorkspace();
+    return;
+  }
+  if (event.target.closest("[data-use-custom]")) {
+    settings.customColor = document.getElementById("custom-brand-color").value;
+    settings.useCustom = true;
+    applySettings();
+    renderSummary();
+    renderWorkspace();
+    return;
+  }
+  if (event.target.closest("[data-reset-theme]")) {
+    settings.theme = "lime";
+    settings.useCustom = false;
+    applySettings();
+    renderSummary();
+    renderWorkspace();
+    return;
+  }
+  if (toggle) {
+    settings[toggle.dataset.setting] = !settings[toggle.dataset.setting];
+    applySettings();
+    renderSummary();
+    renderWorkspace();
+    return;
+  }
   if (view) {
     selectedView = view.dataset.view;
     renderWorkspace();
@@ -490,4 +609,5 @@ document.getElementById("presentation-dialog").addEventListener("click", (event)
 });
 
 renderSummary();
+applySettings();
 renderWorkspace();

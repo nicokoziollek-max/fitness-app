@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b1210">
+    <title>NH Training | Progress App</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Performance Hub</p>
+          <h1>Hi, Nicolas</h1>
+        </div>
+        <button class="profile-chip" aria-label="Profil">NH</button>
+      </header>
+      <main id="app" aria-live="polite"></main>
+      <nav class="bottom-nav" aria-label="Hauptnavigation">
+        <button class="nav-item active" data-tab="home"><span class="nav-icon">⌂</span>Heute</button>
+        <button class="nav-item" data-tab="training"><span class="nav-icon">+</span>Training</button>
+        <button class="nav-item" data-tab="progress"><span class="nav-icon">↗</span>Analyse</button>
+        <button class="nav-item" data-tab="tracker"><span class="nav-icon">◷</span>Tracker</button>
+      </nav>
+    </div>
+    <dialog id="entry-dialog">
+      <form id="entry-form" method="dialog" class="entry-form">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Daily Check-in</p>
+            <h2>Eintrag hinzufügen</h2>
+          </div>
+          <button type="button" class="icon-button" data-close-dialog aria-label="Schließen">×</button>
+        </div>
+        <label>Datum<input required name="date" type="date"></label>
+        <div class="input-row">
+          <label>Gewicht (kg)<input required name="weight" type="number" step="0.1"></label>
+          <label>Schlaf (h)<input name="sleep" type="number" step="0.1"></label>
+        </div>
+        <div class="input-row">
+          <label>Kalorien<input name="calories" type="number"></label>
+          <label>Schritte<input name="steps" type="number"></label>
+        </div>
+        <div class="rating-grid">
+          <label>Energie <output data-rating-output="energy">7</output><input name="energy" type="range" min="1" max="10" value="7"></label>
+          <label>Stress <output data-rating-output="stress">4</output><input name="stress" type="range" min="1" max="10" value="4"></label>
+          <label>Verdauung <output data-rating-output="digestion">7</output><input name="digestion" type="range" min="1" max="10" value="7"></label>
+        </div>
+        <label>Session
+          <select name="session">
+            <option value="">Rest / nicht erfasst</option>
+            <option>Upper/Arms</option>
+            <option>Lower</option>
+            <option>Pull/Trizeps</option>
+            <option>Push/Bizeps</option>
+          </select>
+        </label>
+        <label>Session Rating <output data-rating-output="sessionRating">7</output>
+          <input name="sessionRating" type="range" min="1" max="10" value="7">
+        </label>
+        <button class="primary-button" type="submit">Eintrag speichern</button>
+      </form>
+    </dialog>
+    <dialog id="workout-dialog" class="workout-dialog">
+      <form id="workout-form" method="dialog"></form>
+    </dialog>
+    <script src="data/fitness-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

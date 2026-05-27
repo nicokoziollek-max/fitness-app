@@ -115,6 +115,28 @@ h3 {
   padding: max(22px, env(safe-area-inset-top)) 18px calc(96px + env(safe-area-inset-bottom));
 }
 
+.pull-refresh {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 12;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-dark);
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -18px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.pull-refresh.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 .topbar,
 .card-top,
 .page-title,
@@ -127,6 +149,10 @@ h3 {
 
 .topbar {
   margin-bottom: 27px;
+}
+
+.tracker-screen .topbar {
+  display: none;
 }
 
 .profile-chip {
@@ -159,6 +185,62 @@ h3 {
 
 .page-title {
   margin-bottom: 18px;
+}
+
+.tracker-header {
+  margin-bottom: 20px;
+}
+
+.tracker-header .eyebrow {
+  color: var(--accent);
+}
+
+.tracker-header > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 13px;
+}
+
+.tracker-header h2 {
+  font-size: clamp(24px, 7vw, 30px);
+}
+
+.tracker-header h2.week-title {
+  font-size: clamp(21px, 5.8vw, 27px);
+}
+
+@media (max-width: 410px) {
+  .tracker-header h2.week-title {
+    font-size: 18px;
+    letter-spacing: -0.06em;
+  }
+}
+
+.tracker-header h2 small {
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.calendar-button {
+  position: relative;
+  display: grid;
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 25px;
+}
+
+.calendar-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
 }
 
 .premium-card {
@@ -307,16 +389,17 @@ h3 {
 .view-toggle {
   display: flex;
   gap: 4px;
-  margin-bottom: 14px;
+  margin-bottom: 21px;
   padding: 4px;
-  border-radius: 14px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
   background: var(--surface);
 }
 
 .view-toggle button {
   flex: 1;
-  padding: 11px;
-  border-radius: 10px;
+  padding: 15px 11px;
+  border-radius: 13px;
   background: transparent;
   color: var(--muted);
   font-size: 13px;
@@ -324,44 +407,9 @@ h3 {
 }
 
 .view-toggle .active {
-  background: var(--surface-3);
-  color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.12);
-}
-
-.date-switcher {
-  display: grid;
-  grid-template-columns: 42px 1fr 42px;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.date-switcher button,
-.date-switcher label {
-  display: grid;
-  align-items: center;
-  min-height: 46px;
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  background: var(--surface);
-  text-align: center;
-}
-
-.date-switcher button {
-  font-size: 26px;
-}
-
-.date-switcher label span {
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.date-switcher input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
+  background: var(--accent);
+  color: var(--accent-dark);
+  box-shadow: 0 0 22px rgba(var(--accent-rgb), 0.2);
 }
 
 .edit-tag {
@@ -373,41 +421,135 @@ h3 {
   font-weight: 700;
 }
 
-.macro-card h3,
-.quality-card h3 {
-  margin-top: 5px;
+.macro-card {
+  padding: 20px;
+  border-color: rgba(var(--accent-rgb), .12);
 }
 
-.calorie-total {
-  margin: 18px 0 14px;
-}
-
-.calorie-total strong {
-  display: block;
-  color: var(--accent);
-  font-size: 37px;
-  letter-spacing: -0.06em;
-}
-
-.calorie-total span {
+.edit-icon {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 18px;
 }
 
-.macro-input-grid,
+.nutrition-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: 17px;
+  margin: 21px 0 15px;
+}
+
+.calorie-ring {
+  display: grid;
+  width: 112px;
+  height: 112px;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) var(--progress), rgba(183, 243, 72, .15) var(--progress));
+  box-shadow: 0 0 24px rgba(var(--accent-rgb), .13);
+  justify-self: center;
+}
+
+.calorie-ring::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.calorie-ring div {
+  z-index: 1;
+  grid-area: 1 / 1;
+  text-align: center;
+}
+
+.calorie-ring strong {
+  display: block;
+  font-size: 20px;
+  letter-spacing: -.04em;
+}
+
+.calorie-ring small,
+.calorie-ring span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.nutrient-row {
+  display: grid;
+  grid-template-columns: 1fr 70px 94px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.nutrient-row label {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.nutrient-name {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.nutrient-row input {
+  width: 54px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.nutrient-row label small {
+  color: var(--text);
+}
+
+.target-data {
+  text-align: right;
+}
+
+.target-data strong,
+.target-data em {
+  display: block;
+  white-space: nowrap;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.target-data strong {
+  color: var(--muted);
+}
+
+.target-data em {
+  margin-top: 3px;
+  color: var(--accent);
+}
+
+.calorie-target {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .body-input-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 9px;
 }
 
-.macro-input-grid > div {
-  padding: 11px;
-  border-radius: 13px;
-  background: var(--surface-2);
-}
-
-.macro-input-grid > div > span,
 .data-card span {
   color: var(--muted);
   font-size: 11px;
@@ -448,6 +590,10 @@ h3 {
   margin-bottom: 12px;
 }
 
+.daily-parameters {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .data-card {
   padding: 14px;
   border: 1px solid var(--line);
@@ -455,8 +601,12 @@ h3 {
   background: var(--surface);
 }
 
-.data-card.full {
-  grid-column: 1 / -1;
+.data-card b {
+  display: block;
+  margin: 20px 0 9px;
+  color: var(--accent);
+  font-size: 28px;
+  font-weight: 500;
 }
 
 .data-card i {
@@ -465,9 +615,45 @@ h3 {
   font-style: normal;
 }
 
+.daily-parameters .inline-input input {
+  font-size: 21px;
+}
+
+.sleep-quality-inline {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.sleep-quality-inline .inline-input {
+  margin: 0;
+}
+
+.sleep-quality-inline small {
+  display: block;
+  margin-top: 3px;
+}
+
+.quality-card {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.quality-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
 .quality-row {
   display: block;
-  margin-top: 16px;
+  margin: 0;
+  padding: 16px 15px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
 }
 
 .quality-row > div {
@@ -477,13 +663,17 @@ h3 {
 }
 
 .quality-row strong {
-  font-size: 13px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .09em;
+  text-transform: uppercase;
   font-weight: 550;
 }
 
 .quality-row output {
   color: var(--accent);
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 750;
 }
 
 .glow-slider {
@@ -493,6 +683,25 @@ h3 {
   appearance: none;
   background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.34), var(--surface-3));
   accent-color: var(--accent);
+}
+
+.wide-quality {
+  grid-column: 1 / -1;
+}
+
+.edit-all-button {
+  width: 100%;
+  margin-top: 13px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.edit-all-button span {
+  margin-right: 8px;
 }
 
 .glow-slider::-webkit-slider-thumb {
@@ -529,6 +738,105 @@ h3 {
 .week-range span {
   color: var(--muted);
   font-size: 12px;
+}
+
+.week-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  padding: 13px 9px;
+}
+
+.week-days button {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 8px 3px;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.week-days button.active {
+  background: var(--accent);
+  color: var(--accent-dark);
+}
+
+.week-days span {
+  font-size: 11px;
+}
+
+.week-days strong {
+  font-size: 15px;
+}
+
+.week-days i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.week-days .missing i {
+  background: var(--orange);
+}
+
+.weekly-summary h3 {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.weekly-summary .card-top > small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.target-row {
+  display: grid;
+  grid-template-columns: 83px 1fr 64px 70px 38px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 10px;
+}
+
+.target-row > span {
+  font-size: 12px;
+}
+
+.target-bar {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+
+.target-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  box-shadow: 0 0 11px rgba(var(--accent-rgb), .42);
+}
+
+.target-row strong {
+  color: var(--accent);
+  text-align: right;
+}
+
+.target-row em {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.target-row b {
+  color: var(--accent);
+  text-align: right;
+}
+
+.weekly-body > .eyebrow {
+  margin-bottom: 13px;
 }
 
 .weekly-metrics {
@@ -580,6 +888,10 @@ h3 {
 .day-compare strong {
   color: var(--text);
   text-align: left;
+}
+
+.day-compare.missing {
+  color: var(--orange);
 }
 
 .training-hero {
@@ -925,7 +1237,8 @@ h3 {
   font-size: 12px;
 }
 
-.profile-settings select {
+.profile-settings select,
+.profile-settings input {
   display: block;
   width: 100%;
   margin-top: 8px;
@@ -936,6 +1249,38 @@ h3 {
   color: var(--text);
 }
 
+.coach-targets {
+  margin: 19px 0;
+  padding: 13px;
+  border-radius: 15px;
+  background: var(--surface-2);
+}
+
+.coach-targets > div {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.coach-targets label {
+  position: relative;
+  margin: 12px 0 0;
+}
+
+.coach-targets label:last-child {
+  grid-column: 1 / -1;
+}
+
+.coach-targets small {
+  position: absolute;
+  right: 10px;
+  bottom: 13px;
+  color: var(--muted);
+}
+
+.coach-targets input {
+  padding-right: 43px;
+}
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

@@ -19,6 +19,11 @@ const settings = Object.assign({
   cycleWeeks: 12,
   restSeconds: 90,
   autoTimer: true,
+  calorieTarget: 2500,
+  proteinTarget: 180,
+  carbsTarget: 350,
+  fatsTarget: 70,
+  waterTarget: 4,
 }, readStore("nh-client-settings", {}));
 
 const themes = {
@@ -44,6 +49,7 @@ const workoutForm = document.getElementById("workout-form");
 let timerHandle = null;
 let timerRemaining = 0;
 let chartCount = 0;
+let pullStartY = null;
 
 function todayIso() {
   const date = new Date();
@@ -73,7 +79,7 @@ function sum(values) {
 }
 
 function average(values) {
-  const usable = values.filter((value) => Number.isFinite(Number(value)));
+  const usable = values.filter((value) => value !== null && value !== "" && Number.isFinite(Number(value)));
   return usable.length ? sum(usable) / usable.length : null;
 }
 
@@ -83,6 +89,15 @@ function calculateCalories(entry) {
   const carbs = Number(entry.carbs || 0);
   const fats = Number(entry.fats || entry.fat || 0);
   return protein * 4.1 + carbs * 4.1 + fats * 9.3;
+}
+
+function percentOf(actual, target) {
+  return target && Number.isFinite(Number(actual)) ? Math.round(Number(actual) / Number(target) * 100) : 0;
+}
+
+function remainingOf(actual, target, digits = 0) {
+  const remaining = Number(target) - Number(actual || 0);
+  return `${remaining < 0 ? "+" : ""}${formatValue(Math.abs(remaining), digits)}`;
 }
 
 function refreshEntries() {
@@ -233,42 +248,54 @@ function qualitySlider(label, field, value) {
 function trackerDay() {
   const entry = entryFor(state.selectedDate);
   const calories = calculateCalories(entry);
+  const caloriePercent = Math.min(100, percentOf(calories, settings.calorieTarget));
+  const nutrients = [
+    { label: "Proteine", field: "protein", value: entry.protein, target: settings.proteinTarget, unit: "g" },
+    { label: "Kohlenhydrate", field: "carbs", value: entry.carbs, target: settings.carbsTarget, unit: "g" },
+    { label: "Fette", field: "fats", value: entry.fats, target: settings.fatsTarget, unit: "g" },
+    { label: "Wasser", field: "water", value: entry.water, target: settings.waterTarget, unit: "l", step: "0.1" },
+  ];
   return `
-    <div class="date-switcher">
-      <button data-date-shift="-1" aria-label="Vorheriger Tag">‹</button>
-      <label><span>${formatDate(state.selectedDate, true)}</span><input data-date-picker type="date" value="${state.selectedDate}"></label>
-      <button data-date-shift="1" aria-label="Nächster Tag">›</button>
-    </div>
     <article class="macro-card premium-card">
-      <div class="card-top"><div><p class="eyebrow">Nährwerte & Wasser</p><h3>Makros</h3></div><span class="edit-tag">✎ Autosave</span></div>
-      <div class="calorie-total"><strong data-calorie-total>${formatValue(calories, 0)}</strong><span>kcal berechnet</span></div>
-      <div class="macro-input-grid">
-        <div><span>Protein</span>${trackerNumber("protein", entry.protein, "g")}</div>
-        <div><span>Carbs</span>${trackerNumber("carbs", entry.carbs, "g")}</div>
-        <div><span>Fette</span>${trackerNumber("fats", entry.fats, "g")}</div>
-        <div><span>Wasser</span>${trackerNumber("water", entry.water, "L", "0.1")}</div>
+      <div class="card-top"><p class="eyebrow">Nährwerte & Wasser</p><span class="edit-icon">✎</span></div>
+      <div class="nutrition-layout">
+        <div class="calorie-ring" data-calorie-ring style="--progress:${caloriePercent}%">
+          <div><strong data-calorie-total>${formatValue(calories, 0)}</strong><small>kcal</small><span data-calorie-percent>${percentOf(calories, settings.calorieTarget)} %</span></div>
+        </div>
+        <div class="nutrient-rows">
+          ${nutrients.map((item) => `<div class="nutrient-row" data-nutrient-row="${item.field}">
+            <span class="nutrient-name">${item.label}</span>
+            <label><input data-track-input="${item.field}" type="number" step="${item.step || "1"}" value="${Number.isFinite(Number(item.value)) ? item.value : ""}" placeholder="-"><small>${item.unit}</small></label>
+            <div class="target-data"><strong><span data-actual="${item.field}">${formatValue(item.value, item.step ? 1 : 0)}</span> / ${formatValue(item.target, item.step ? 1 : 0)} ${item.unit}</strong><em data-rest="${item.field}">Rest ${remainingOf(item.value, item.target, item.step ? 1 : 0)} ${item.unit}</em></div>
+          </div>`).join("")}
+        </div>
       </div>
-      <p class="formula">Protein × 4,1 + Kohlenhydrate × 4,1 + Fette × 9,3</p>
+      <div class="calorie-target"><span>Ziel ${formatValue(settings.calorieTarget, 0)} kcal</span><span data-calorie-rest>Rest ${remainingOf(calories, settings.calorieTarget)} kcal</span></div>
+      <p class="formula">Kalorien: (Proteine × 4,1) + (Kohlenhydrate × 4,1) + (Fette × 9,3)</p>
     </article>
-    <div class="body-input-grid">
-      <article class="data-card"><div class="card-top"><span>Schritte</span><i>✎</i></div>${trackerNumber("steps", entry.steps, "", "1")}</article>
-      <article class="data-card"><div class="card-top"><span>Gewicht</span><i>✎</i></div>${trackerNumber("weight", entry.weight, "kg", "0.1")}</article>
-      <article class="data-card full"><div class="card-top"><span>Schlafdauer</span><i>✎</i></div>${trackerNumber("sleep", entry.sleep, "h", "0.1")}</article>
+    <div class="body-input-grid daily-parameters">
+      <article class="data-card"><div class="card-top"><span>Schritte</span><i>✎</i></div><b>⌁</b>${trackerNumber("steps", entry.steps, "", "1")}</article>
+      <article class="data-card"><div class="card-top"><span>Gewicht</span><i>✎</i></div><b>▣</b>${trackerNumber("weight", entry.weight, "kg", "0.1")}</article>
+      <article class="data-card sleep-card"><div class="card-top"><span>Schlaf</span><i>✎</i></div>${trackerNumber("sleep", entry.sleep, "h", "0.1")}<div class="sleep-quality-inline">${trackerNumber("sleepQuality", entry.sleepQuality, "/10", "1")}<small>Qualität</small></div></article>
     </div>
     <article class="quality-card premium-card">
-      <div class="card-top"><div><p class="eyebrow">Qualitätswerte</p><h3>Daily Score Inputs</h3></div><span class="edit-tag">✎ 1–10</span></div>
-      ${qualitySlider("Schlafqualität", "sleepQuality", entry.sleepQuality)}
-      ${qualitySlider("Verdauungsqualität", "digestion", entry.digestion)}
-      ${qualitySlider("Energielevel", "energy", entry.energy)}
-      ${qualitySlider("Stresslevel", "stress", entry.stress)}
-      ${qualitySlider("Trainingsqualität", "sessionRating", entry.sessionRating)}
-      ${qualitySlider("Qualität des Essens", "foodQuality", entry.foodQuality ?? entry.appetite)}
+      <div class="quality-grid">
+        ${qualitySlider("Verdauungsqualität", "digestion", entry.digestion)}
+        ${qualitySlider("Energielevel", "energy", entry.energy)}
+        ${qualitySlider("Stresslevel", "stress", entry.stress)}
+        ${qualitySlider("Trainingsqualität", "sessionRating", entry.sessionRating)}
+        <div class="wide-quality">${qualitySlider("Qualität des Essens", "foodQuality", entry.foodQuality ?? entry.appetite)}</div>
+      </div>
     </article>
+    <button class="edit-all-button" data-edit-all><span>✎</span> Alle Einträge bearbeiten</button>
     <p class="save-status" data-save-status>Änderungen speichern automatisch</p>`;
 }
 
 function weeklyDates() {
-  return Array.from({ length: 7 }, (_, index) => dateShift(state.selectedDate, index - 6));
+  const current = new Date(`${state.selectedDate}T12:00:00`);
+  const day = current.getDay() || 7;
+  const monday = dateShift(state.selectedDate, 1 - day);
+  return Array.from({ length: 7 }, (_, index) => dateShift(monday, index));
 }
 
 function weeklyMetricCard(label, values, unit, digits, color) {
@@ -281,29 +308,68 @@ function weeklyMetricCard(label, values, unit, digits, color) {
 function trackerWeek() {
   const dates = weeklyDates();
   const entries = dates.map(entryFor);
+  const summaryRows = [
+    { label: "Kalorien", values: entries.map(calculateCalories), target: settings.calorieTarget, unit: "kcal", digits: 0 },
+    { label: "Proteine", values: entries.map((entry) => entry.protein), target: settings.proteinTarget, unit: "g", digits: 0 },
+    { label: "Kohlenhydrate", values: entries.map((entry) => entry.carbs), target: settings.carbsTarget, unit: "g", digits: 0 },
+    { label: "Fette", values: entries.map((entry) => entry.fats), target: settings.fatsTarget, unit: "g", digits: 0 },
+    { label: "Wasser", values: entries.map((entry) => entry.water), target: settings.waterTarget, unit: "l", digits: 1 },
+  ];
   return `
-    <article class="week-range premium-card"><div><p class="eyebrow">Letzte 7 Tage</p><h3>${formatDate(dates[0])} – ${formatDate(dates.at(-1))}</h3></div><span>Ø Werte</span></article>
-    <div class="weekly-metrics">
-      ${weeklyMetricCard("Gewicht", entries.map((entry) => entry.weight), "kg", 1, "var(--accent)")}
-      ${weeklyMetricCard("Kalorien", entries.map(calculateCalories), "kcal", 0, "#ffbc74")}
-      ${weeklyMetricCard("Schritte", entries.map((entry) => entry.steps), "", 0, "#53e3d3")}
-      ${weeklyMetricCard("Schlaf", entries.map((entry) => entry.sleep), "h", 1, "#78a9ff")}
-    </div>
+    <div class="week-days premium-card">${dates.map((date, index) => {
+      const entry = entryFor(date);
+      const missing = !Number.isFinite(Number(entry.protein)) && !Number.isFinite(Number(entry.weight));
+      const weekday = new Intl.DateTimeFormat("de-DE", { weekday: "short" }).format(new Date(`${date}T12:00:00`));
+      return `<button class="${date === state.selectedDate ? "active" : ""} ${missing ? "missing" : ""}" data-select-date="${date}"><span>${weekday}</span><strong>${new Date(`${date}T12:00:00`).getDate()}.</strong><i></i></button>`;
+    }).join("")}</div>
+    <article class="weekly-summary premium-card">
+      <div class="card-top"><div><p class="eyebrow">Wochenzusammenfassung</p><h3>Nährwerte · Durchschnitt pro Tag</h3></div><small>Ziel (Coach)</small></div>
+      ${summaryRows.map((row) => {
+        const value = average(row.values);
+        const pct = percentOf(value, row.target);
+        return `<div class="target-row"><span>${row.label}</span><div class="target-bar"><i style="width:${Math.min(100, pct)}%"></i></div><strong>${formatValue(value, row.digits)} ${row.unit}</strong><em>/ ${formatValue(row.target, row.digits)} ${row.unit}</em><b>${pct} %</b></div>`;
+      }).join("")}
+    </article>
+    <article class="premium-card weekly-body">
+      <p class="eyebrow">Körper & Aktivität</p>
+      <div class="weekly-metrics">
+        ${weeklyMetricCard("Schritte", entries.map((entry) => entry.steps), "", 0, "var(--accent)")}
+        ${weeklyMetricCard("Gewicht", entries.map((entry) => entry.weight), "kg", 1, "var(--accent)")}
+        ${weeklyMetricCard("Schlafdauer", entries.map((entry) => entry.sleep), "h", 1, "#d9e6d5")}
+        ${weeklyMetricCard("Schlafqualität", entries.map((entry) => entry.sleepQuality), "/10", 1, "var(--accent)")}
+        ${weeklyMetricCard("Energielevel", entries.map((entry) => entry.energy), "/10", 1, "var(--accent)")}
+        ${weeklyMetricCard("Stresslevel", entries.map((entry) => entry.stress), "/10", 1, "#d9e6d5")}
+        ${weeklyMetricCard("Trainingsqualität", entries.map((entry) => entry.sessionRating), "/10", 1, "var(--accent)")}
+        ${weeklyMetricCard("Qualität des Essens", entries.map((entry) => entry.foodQuality ?? entry.appetite), "/10", 1, "var(--accent)")}
+      </div>
+    </article>
     <article class="comparison-card premium-card">
-      <div class="card-top"><p class="eyebrow">Tage im Vergleich</p><span class="edit-tag">Tippen zum Bearbeiten</span></div>
+      <div class="card-top"><p class="eyebrow">Tageswerte</p><span class="edit-tag">Fehlende Einträge markiert</span></div>
       ${dates.map((date) => {
         const entry = entryFor(date);
-        return `<button class="day-compare" data-select-date="${date}">
-          <strong>${formatDate(date)}</strong><span>${formatValue(entry.weight)} kg</span><span>${formatValue(calculateCalories(entry), 0)} kcal</span><span>${formatValue(entry.sleep)} h</span>
+        const missing = !Number.isFinite(Number(entry.protein)) && !Number.isFinite(Number(entry.weight));
+        return `<button class="day-compare ${missing ? "missing" : ""}" data-select-date="${date}">
+          <strong>${formatDate(date)}</strong><span>${formatValue(entry.weight)} kg</span><span>${formatValue(calculateCalories(entry), 0)} kcal</span><span>${missing ? "Fehlt" : "Öffnen"}</span>
         </button>`;
       }).join("")}
     </article>`;
 }
 
+function trackerHeader() {
+  const dates = weeklyDates();
+  const title = state.trackerView === "day"
+    ? `${state.selectedDate === todayIso() ? "Heute, " : ""}${new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "long", year: "numeric" }).format(new Date(`${state.selectedDate}T12:00:00`))}`
+    : `Woche ${new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "short" }).format(new Date(`${dates[0]}T12:00:00`))} – ${new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${dates.at(-1)}T12:00:00`))}`;
+  return `<header class="tracker-header">
+    <p class="eyebrow">Data Tracker</p>
+    <div><h2 class="${state.trackerView === "week" ? "week-title" : ""}">${title} <small>⌄</small></h2><label class="calendar-button" aria-label="Datum wählen">□<input data-date-picker type="date" value="${state.selectedDate}"></label></div>
+  </header>`;
+}
+
 function tracker() {
   return `
-    ${pageTitle("Performance Data", "Data Tracker")}
-    <div class="view-toggle"><button class="${state.trackerView === "day" ? "active" : ""}" data-tracker-view="day">Tagesansicht</button><button class="${state.trackerView === "week" ? "active" : ""}" data-tracker-view="week">Wochenansicht</button></div>
+    ${trackerHeader()}
+    <div class="view-toggle"><button class="${state.trackerView === "day" ? "active" : ""}" data-tracker-view="day">Tagessicht</button><button class="${state.trackerView === "week" ? "active" : ""}" data-tracker-view="week">Wochenansicht</button></div>
     ${state.trackerView === "day" ? trackerDay() : trackerWeek()}`;
 }
 
@@ -408,6 +474,16 @@ function profile() {
     <article class="premium-card profile-settings">
       <p class="eyebrow">Einstellungen</p>
       <label>Phase<select data-setting="phase"><option ${settings.phase === "Aufbau" ? "selected" : ""}>Aufbau</option><option ${settings.phase === "Cut" ? "selected" : ""}>Cut</option><option ${settings.phase === "Prep" ? "selected" : ""}>Prep</option><option ${settings.phase === "Erhaltung" ? "selected" : ""}>Erhaltung</option></select></label>
+      <div class="coach-targets">
+        <p class="eyebrow">Coach Vorgaben · Tagesziele</p>
+        <div>
+          <label>Kalorien<input data-setting-number="calorieTarget" type="number" value="${settings.calorieTarget}"><small>kcal</small></label>
+          <label>Proteine<input data-setting-number="proteinTarget" type="number" value="${settings.proteinTarget}"><small>g</small></label>
+          <label>Carbs<input data-setting-number="carbsTarget" type="number" value="${settings.carbsTarget}"><small>g</small></label>
+          <label>Fette<input data-setting-number="fatsTarget" type="number" value="${settings.fatsTarget}"><small>g</small></label>
+          <label>Wasser<input data-setting-number="waterTarget" type="number" step="0.1" value="${settings.waterTarget}"><small>l</small></label>
+        </div>
+      </div>
       <div class="theme-grid">${Object.entries(themes).map(([key, item]) => `<button class="${settings.theme === key ? "active" : ""}" data-theme="${key}"><i style="background:${item.accent}"></i>${item.label}</button>`).join("")}</div>
       <p class="storage-copy">Neue Eingaben werden lokal auf diesem Gerät gespeichert.</p>
       <button class="secondary-wide" data-export>Backup exportieren</button>
@@ -422,7 +498,35 @@ function render() {
   chartCount = 0;
   const screens = { home: dashboard, training, "training-analysis": trainingAnalysis, tracker, calendar, profile, chat };
   app.innerHTML = (screens[state.tab] || dashboard)();
+  document.querySelector(".app-shell").classList.toggle("tracker-screen", state.tab === "tracker");
   document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.tab === state.tab));
+}
+
+function updateTrackerLiveValues() {
+  if (state.tab !== "tracker" || state.trackerView !== "day") return;
+  const current = entryFor(state.selectedDate);
+  const calories = calculateCalories(current);
+  const caloriePercent = percentOf(calories, settings.calorieTarget);
+  const calorieOutput = app.querySelector("[data-calorie-total]");
+  const ring = app.querySelector("[data-calorie-ring]");
+  const percent = app.querySelector("[data-calorie-percent]");
+  const rest = app.querySelector("[data-calorie-rest]");
+  if (calorieOutput) calorieOutput.textContent = formatValue(calories, 0);
+  if (ring) ring.style.setProperty("--progress", `${Math.min(100, caloriePercent)}%`);
+  if (percent) percent.textContent = `${caloriePercent} %`;
+  if (rest) rest.textContent = `Rest ${remainingOf(calories, settings.calorieTarget)} kcal`;
+  [
+    ["protein", settings.proteinTarget, 0],
+    ["carbs", settings.carbsTarget, 0],
+    ["fats", settings.fatsTarget, 0],
+    ["water", settings.waterTarget, 1],
+  ].forEach(([field, target, digits]) => {
+    const value = current[field];
+    const actual = app.querySelector(`[data-actual="${field}"]`);
+    const remaining = app.querySelector(`[data-rest="${field}"]`);
+    if (actual) actual.textContent = formatValue(value, digits);
+    if (remaining) remaining.textContent = `Rest ${remainingOf(value, target, digits)} ${field === "water" ? "l" : "g"}`;
+  });
 }
 
 function lastExerciseLog(name) {
@@ -540,15 +644,16 @@ app.addEventListener("click", (event) => {
     return render();
   }
   if (event.target.closest("[data-export]")) exportBackup();
+  if (event.target.closest("[data-edit-all]")) {
+    app.querySelector("[data-track-input]")?.focus();
+  }
 });
 
 app.addEventListener("input", (event) => {
   const input = event.target.closest("[data-track-input]");
   if (input) {
     saveTrackerField(state.selectedDate, input.dataset.trackInput, input.value);
-    const current = entryFor(state.selectedDate);
-    const calorieOutput = app.querySelector("[data-calorie-total]");
-    if (calorieOutput) calorieOutput.textContent = formatValue(calculateCalories(current), 0);
+    updateTrackerLiveValues();
     const sliderOutput = app.querySelector(`[data-slider-output="${input.dataset.trackInput}"]`);
     if (sliderOutput) sliderOutput.textContent = input.value;
     const status = app.querySelector("[data-save-status]");
@@ -559,6 +664,10 @@ app.addEventListener("input", (event) => {
   }
   if (event.target.matches("[data-cycle-weeks]")) {
     settings.cycleWeeks = Math.max(1, Number(event.target.value) || 12);
+    persistSettings();
+  }
+  if (event.target.matches("[data-setting-number]")) {
+    settings[event.target.dataset.settingNumber] = Number(event.target.value);
     persistSettings();
   }
 });
@@ -573,6 +682,7 @@ app.addEventListener("change", (event) => {
     persistSettings();
     render();
   }
+  if (event.target.matches("[data-setting-number]")) render();
   if (event.target.matches("[data-cycle-weeks]")) render();
 });
 
@@ -664,6 +774,22 @@ function exportBackup() {
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
+
+document.addEventListener("touchstart", (event) => {
+  if (window.scrollY === 0) pullStartY = event.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener("touchend", (event) => {
+  if (pullStartY === null) return;
+  const distance = event.changedTouches[0].clientY - pullStartY;
+  pullStartY = null;
+  if (distance < 70 || window.scrollY > 0) return;
+  refreshEntries();
+  render();
+  const indicator = document.getElementById("pull-refresh");
+  indicator.classList.add("visible");
+  window.setTimeout(() => indicator.classList.remove("visible"), 850);
+}, { passive: true });
 
 refreshEntries();
 applyTheme();

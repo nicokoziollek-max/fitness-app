@@ -13,12 +13,21 @@ const savedEntries = readStore("nh-training-entries", []);
 const workoutLogs = readStore("nh-workout-logs", []);
 const improvementNotes = readStore("nh-improvement-notes", []);
 const measurements = readStore("nh-body-measurements", []);
+const nutritionLogs = readStore("nh-nutrition-logs", []);
+const chatMessages = readStore("nh-chat-messages", []);
+const peakChecks = readStore("nh-peak-checks", {});
 const settings = Object.assign({
   theme: "lime",
   goalMin: 0.15,
   goalMax: 0.3,
   restSeconds: 90,
   autoTimer: true,
+  phase: "Aufbau",
+  prepMode: true,
+  proteinTarget: 190,
+  carbsTarget: 350,
+  fatTarget: 75,
+  waterTarget: 3.5,
 }, readStore("nh-client-settings", {}));
 
 const themes = {
@@ -34,6 +43,7 @@ const state = {
   week: Number(localStorage.getItem("nh-active-week") || 1),
   metric: "weight",
   exerciseName: null,
+  nutritionWeek: 0,
   entries: [],
 };
 
@@ -51,6 +61,8 @@ const workoutDialog = document.getElementById("workout-dialog");
 const workoutForm = document.getElementById("workout-form");
 const measurementDialog = document.getElementById("measurement-dialog");
 const measurementForm = document.getElementById("measurement-form");
+const nutritionDialog = document.getElementById("nutrition-dialog");
+const nutritionForm = document.getElementById("nutrition-form");
 let timerHandle = null;
 let timerRemaining = 0;
 let chartCount = 0;
@@ -155,6 +167,38 @@ function growthStatus() {
   return { tone: "good", title: "Im Zielkorridor", text: "Der Gewichtstrend passt zu deinem eingestellten Aufbauziel." };
 }
 
+function isoOffset(days) {
+  const date = new Date(`${todayIso()}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function mondayForOffset(weekOffset) {
+  const date = new Date(`${todayIso()}T12:00:00`);
+  const day = date.getDay() || 7;
+  date.setDate(date.getDate() - day + 1 + weekOffset * 7);
+  return date;
+}
+
+function dateFromStart(start, offset) {
+  const date = new Date(start);
+  date.setDate(date.getDate() + offset);
+  return date.toISOString().slice(0, 10);
+}
+
+function chatTimeline() {
+  const demo = [
+    { id: "seed-1", date: isoOffset(-19), sender: "coach", text: "Hi Nicolas, starke Woche. Gewicht läuft kontrolliert hoch. Halte die Kalorien diese Woche stabil und schick mir nach dem Lower-Training kurz ein Update." },
+    { id: "seed-2", date: isoOffset(-18), sender: "me", text: "Mache ich. Lower war heute deutlich stärker, Squats fühlten sich leichter an." },
+    { id: "seed-3", date: isoOffset(-18), sender: "me", text: "Check-in Fotos hochgeladen.", attachment: { label: "Check-in Front / Side", kind: "Fotos", demo: true } },
+    { id: "seed-4", date: isoOffset(-12), sender: "coach", text: "Fotos und Log gesehen. Taille bleibt ruhig, Performance steigt. Wir erhöhen die Carbs an Trainingstagen leicht um 25 g." },
+    { id: "seed-5", date: isoOffset(-8), sender: "me", text: "Update: Schlaf war zwei Nächte schlechter, Kraft trotzdem okay. Soll ich Cardio reduzieren?" },
+    { id: "seed-6", date: isoOffset(-8), sender: "coach", text: "Noch nicht. Erst Schlaf priorisieren und die nächsten zwei Sessions beobachten. Gib mir Sonntag dein Wochenfeedback." },
+    { id: "seed-7", date: isoOffset(-2), sender: "coach", text: "Die neue Woche sieht gut aus. Wenn Gewicht und Taille im Korridor bleiben, ziehen wir den Aufbau unverändert weiter." },
+  ];
+  return [...demo, ...chatMessages].sort((a, b) => `${a.date}-${a.id}`.localeCompare(`${b.date}-${b.id}`));
+}
+
 function chartSvg(values, color = "#b7f348") {
   if (!values.length) return `<p class="helper">Noch keine Daten für diesen Verlauf.</p>`;
   chartCount += 1;
@@ -200,7 +244,7 @@ function dashboard() {
   const workoutCount = activeSessions().length;
   return `
     <section class="hero">
-      <p class="eyebrow">Gewichtstrend - 7 Tage</p>
+      <p class="eyebrow">${settings.phase} - Gewichtstrend 7 Tage</p>
       <div class="hero-title">${formatValue(today.weight)}<span class="unit">kg</span></div>
       <p class="subtle">Zuletzt erfasst am ${formatDate(today.date)}</p>
       <div class="trend">${trend >= 0 ? "+" : ""}${formatValue(trend)} kg gegenüber Vorwoche</div>
@@ -220,6 +264,10 @@ function dashboard() {
       </div>
     </article>
     ${goalCard()}
+    <div class="dashboard-shortcuts">
+      <button class="shortcut-card" data-go="nutrition"><span>Nährwerte</span><strong>Makros & Wasser</strong><small>Woche auswerten</small></button>
+      <button class="shortcut-card ${settings.prepMode ? "accent" : ""}" data-go="peak"><span>Show Day</span><strong>Peak Week</strong><small>${settings.prepMode ? "Checkliste aktiv" : "Prep-Modus aus"}</small></button>
+    </div>
     <div class="kpi-grid">
       <article class="kpi"><p class="eyebrow">Kalorien Ø 7T</p><strong>${formatValue(average(valuesFor("calories", 7)), 0)}</strong><p class="helper">kcal / Tag</p></article>
       <article class="kpi good"><p class="eyebrow">Schlaf Ø 7T</p><strong>${formatValue(average(valuesFor("sleep", 7)))} h</strong><p class="helper">Regeneration</p></article>
@@ -345,6 +393,29 @@ function insightCards() {
     <article class="insight warning"><span class="insight-mark"></span><div><strong>Interpretation</strong><p>Gewicht allein misst kein Muskelwachstum. Beziehe Kraftwerte und Körpermaße in die Bewertung ein.</p></div></article>`;
 }
 
+function weeklyReviewCard() {
+  const sleep = average(valuesFor("sleep", 7));
+  const energy = average(valuesFor("energy", 7));
+  const logs = workoutLogs.filter((log) => log.date >= isoOffset(-7));
+  const nutrition = nutritionLogs.filter((entry) => entry.date >= isoOffset(-7));
+  const nutritionAverage = average(nutrition.map((entry) => entry.calories));
+  const signal = sleep < 7
+    ? "Regeneration zuerst: Schlaf liegt unter 7 h. Belastung halten und Schlafroutine priorisieren."
+    : logs.length >= 3
+      ? "Training läuft konstant. Bei sauberer RIR kann die nächste Progression geplant werden."
+      : "Mehr Session-Logs machen die Leistungsbewertung der Woche belastbarer.";
+  return `<article class="card weekly-review">
+    <div class="section-head"><div><p class="eyebrow">Wochenfeedback</p><h3>Coach Analyse</h3></div><span class="status-pill">Diese Woche</span></div>
+    <div class="review-stats">
+      <div><strong>${formatValue(sleep)} h</strong><span>Schlaf Ø</span></div>
+      <div><strong>${formatValue(energy)}</strong><span>Energie Ø</span></div>
+      <div><strong>${logs.length}</strong><span>Sessions</span></div>
+      <div><strong>${nutrition.length ? formatValue(nutritionAverage, 0) : "-"}</strong><span>kcal Ø</span></div>
+    </div>
+    <p class="recommendation">${signal}</p>
+  </article>`;
+}
+
 function progress() {
   const config = metricConfig[state.metric];
   const values = valuesFor(state.metric, 42);
@@ -367,6 +438,7 @@ function progress() {
     ${performanceCard()}
     ${exerciseProgressCard()}
     ${measurementCard()}
+    ${weeklyReviewCard()}
     <section class="section"><div class="section-head"><h2>Wachstumsanalyse</h2></div>${insightCards()}</section>`;
 }
 
@@ -393,6 +465,108 @@ function tracker() {
     </article>`).join("")}`;
 }
 
+function nutrition() {
+  const start = mondayForOffset(state.nutritionWeek);
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = dateFromStart(start, index);
+    return { date, log: nutritionLogs.find((entry) => entry.date === date) };
+  });
+  const weekLogs = days.map((day) => day.log).filter(Boolean);
+  const averageFor = (key) => average(weekLogs.map((entry) => entry[key]));
+  const endDate = days.at(-1).date;
+  return `
+    <div class="section-head"><div><p class="eyebrow">Ernährung</p><h2>Makro Tracker</h2></div><button class="link-button" data-new-nutrition>+ Eintrag</button></div>
+    <article class="card week-picker">
+      <button class="secondary-button" data-nutrition-week="-1">&larr;</button>
+      <div><p class="eyebrow">Wochenansicht</p><h3>${formatDate(days[0].date)} - ${formatDate(endDate)}</h3></div>
+      <button class="secondary-button" data-nutrition-week="1">&rarr;</button>
+    </article>
+    <div class="macro-grid">
+      <article><strong>${weekLogs.length ? formatValue(averageFor("calories"), 0) : "-"}</strong><span>kcal Ø</span></article>
+      <article><strong>${weekLogs.length ? formatValue(averageFor("protein"), 0) : "-"}</strong><span>Protein Ø</span><small>Ziel ${settings.proteinTarget} g</small></article>
+      <article><strong>${weekLogs.length ? formatValue(averageFor("carbs"), 0) : "-"}</strong><span>Carbs Ø</span><small>Ziel ${settings.carbsTarget} g</small></article>
+      <article><strong>${weekLogs.length ? formatValue(averageFor("fat"), 0) : "-"}</strong><span>Fette Ø</span><small>Ziel ${settings.fatTarget} g</small></article>
+    </div>
+    <article class="card">
+      <div class="section-head"><div><p class="eyebrow">Wasserziel</p><h3>${weekLogs.length ? `${formatValue(averageFor("water"))} L Ø` : "Noch offen"}</h3></div><strong class="goal-rate">${settings.waterTarget} L / Tag</strong></div>
+      <div class="progress-track"><span style="width:${Math.min(100, averageFor("water") / settings.waterTarget * 100)}%"></span></div>
+    </article>
+    <section class="nutrition-days">${days.map(({ date, log }) => `<article class="nutrition-day">
+      <div><strong>${formatDate(date)}</strong><p>${log ? `${log.calories} kcal · ${log.protein} P · ${log.carbs} C · ${log.fat} F · ${formatValue(log.water)} L` : "Noch kein Eintrag"}</p></div>
+      <button class="link-button" data-edit-nutrition="${date}">${log ? "Bearbeiten" : "+"}</button>
+    </article>`).join("")}</section>
+    <article class="card">
+      <p class="eyebrow">Synchronisierung</p>
+      <p class="helper data-copy">Makro-Einträge werden aktuell lokal gespeichert. Eine spätere Datenbankversion kann Coach-Änderungen und Benachrichtigungen synchronisieren.</p>
+    </article>`;
+}
+
+function peakWeek() {
+  if (!settings.prepMode) {
+    return `<div class="section-head"><div><p class="eyebrow">Show Day</p><h2>Peak Week</h2></div></div>
+      <article class="card"><h3>Nur für Prep-Athleten sichtbar</h3><p class="helper data-copy">Aktiviere den Prep-Modus in den Einstellungen, um Peak-Week-Plan, Wasser, Salz und Tageschecklisten zu sehen.</p><button class="primary-button peak-enable" data-enable-prep>Prep-Modus aktivieren</button></article>`;
+  }
+  const plan = [
+    { label: "Mo · -6", water: "6.0 L", salt: "normal", carbs: "230 g", cardio: "30 min", steps: "10k" },
+    { label: "Di · -5", water: "6.0 L", salt: "normal", carbs: "210 g", cardio: "30 min", steps: "10k" },
+    { label: "Mi · -4", water: "6.0 L", salt: "normal", carbs: "180 g", cardio: "20 min", steps: "9k" },
+    { label: "Do · -3", water: "5.0 L", salt: "normal", carbs: "320 g", cardio: "Pause", steps: "8k" },
+    { label: "Fr · -2", water: "4.0 L", salt: "planmäßig", carbs: "420 g", cardio: "Pause", steps: "7k" },
+    { label: "Sa · -1", water: "nach Look", salt: "Coach Call", carbs: "nach Look", cardio: "Pause", steps: "locker" },
+    { label: "So · Show", water: "Sip-by-Sip", salt: "festgelegt", carbs: "Pump Meals", cardio: "Stage", steps: "-" },
+  ];
+  const selected = plan[Math.min(6, Math.max(0, Number(localStorage.getItem("nh-peak-day") || 4)))];
+  const selectedIndex = plan.indexOf(selected);
+  const tasks = ["Morgengewicht dokumentieren", "Check-in Fotos senden", "Wasser & Salz abhaken", "Look/Feedback mit Coach prüfen"];
+  const completed = tasks.filter((task, index) => peakChecks[`${selectedIndex}-${index}`]).length;
+  return `
+    <div class="section-head"><div><p class="eyebrow">Privat · Demo-Plan</p><h2>Peak Week</h2></div><span class="status-pill">${completed}/${tasks.length}</span></div>
+    <div class="peak-days">${plan.map((day, index) => `<button class="peak-day ${index === selectedIndex ? "active" : ""}" data-peak-day="${index}"><span>${day.label.split(" · ")[0]}</span><strong>${day.label.split(" · ")[1]}</strong></button>`).join("")}</div>
+    <article class="card peak-summary">
+      <div class="section-head"><div><p class="eyebrow">Tagesplan</p><h3>${selected.label}</h3></div><span class="private-pill">Privat</span></div>
+      <div class="peak-metrics">
+        <div><span>Wasser</span><strong>${selected.water}</strong></div>
+        <div><span>Salz</span><strong>${selected.salt}</strong></div>
+        <div><span>Carbs</span><strong>${selected.carbs}</strong></div>
+        <div><span>Cardio</span><strong>${selected.cardio}</strong></div>
+        <div><span>Schritte</span><strong>${selected.steps}</strong></div>
+      </div>
+    </article>
+    <article class="card checklist-card">
+      <p class="eyebrow">Show Day Checkliste</p>
+      ${tasks.map((task, index) => `<button class="checklist-item ${peakChecks[`${selectedIndex}-${index}`] ? "done" : ""}" data-peak-task="${selectedIndex}-${index}"><span>${peakChecks[`${selectedIndex}-${index}`] ? "✓" : ""}</span>${task}</button>`).join("")}
+      <button class="secondary-button photo-cta" data-go="chat">Fotos im Chat senden</button>
+    </article>`;
+}
+
+function chat() {
+  const timeline = chatTimeline();
+  let previousDate = "";
+  return `
+    <div class="chat-head">
+      <button class="coach-avatar" type="button">MK</button>
+      <div><p class="eyebrow">Coach Messenger</p><h2>Marco Keller</h2><span class="online-status">Online · Antwortet meist heute</span></div>
+    </div>
+    <article class="chat-context">
+      <span>Aktuelle Phase: ${settings.phase}</span>
+      <button data-go="peak">Peak Week teilen</button>
+    </article>
+    <section class="chat-thread">${timeline.map((message) => {
+      const dateDivider = message.date !== previousDate ? `<p class="chat-date">${formatDate(message.date)}</p>` : "";
+      previousDate = message.date;
+      const attachment = message.attachment ? `<div class="message-attachment ${message.attachment.image ? "with-image" : ""}">${message.attachment.image ? `<img src="${message.attachment.image}" alt="Angehängtes Bild">` : `<span class="photo-mark">▧</span>`}<div><strong>${escapeHtml(message.attachment.label)}</strong><small>${message.attachment.demo ? "Beispielanhang" : "Bild gesendet"}</small></div></div>` : "";
+      return `${dateDivider}<div class="message-row ${message.sender === "me" ? "mine" : ""}"><div class="message"><p>${escapeHtml(message.text)}</p>${attachment}<time>${formatDate(message.date)}</time></div></div>`;
+    }).join("")}</section>
+    <form id="chat-form" class="chat-composer">
+      <label class="attach-button" aria-label="Bild anhängen">+
+        <input name="image" type="file" accept="image/*">
+      </label>
+      <label class="chat-input"><input name="text" type="text" maxlength="500" placeholder="Nachricht an Coach..."></label>
+      <button class="send-button" type="submit">Senden</button>
+      <p class="attachment-hint" data-attachment-hint>Fotos werden lokal in diesem Demo-Chat gespeichert.</p>
+    </form>`;
+}
+
 function settingsView() {
   return `
     <div class="section-head"><div><p class="eyebrow">Personalisierung</p><h2>Mehr & Einstellungen</h2></div></div>
@@ -403,6 +577,9 @@ function settingsView() {
     <article class="card settings-card">
       <p class="eyebrow">Steuerung</p><h3>Aufbau & Workout</h3>
       <form id="settings-form" class="settings-form">
+        <label>Aktuelle Phase
+          <select name="phase"><option ${settings.phase === "Aufbau" ? "selected" : ""}>Aufbau</option><option ${settings.phase === "Cut" ? "selected" : ""}>Cut</option><option ${settings.phase === "Prep" ? "selected" : ""}>Prep</option><option ${settings.phase === "Erhaltung" ? "selected" : ""}>Erhaltung</option></select>
+        </label>
         <div class="input-row">
           <label>Ziel min kg/W<input required name="goalMin" type="number" min="-1" max="2" step="0.05" value="${settings.goalMin}"></label>
           <label>Ziel max kg/W<input required name="goalMax" type="number" min="-1" max="2" step="0.05" value="${settings.goalMax}"></label>
@@ -411,13 +588,21 @@ function settingsView() {
           <select name="restSeconds"><option value="60" ${settings.restSeconds === 60 ? "selected" : ""}>60 Sekunden</option><option value="90" ${settings.restSeconds === 90 ? "selected" : ""}>90 Sekunden</option><option value="120" ${settings.restSeconds === 120 ? "selected" : ""}>120 Sekunden</option><option value="180" ${settings.restSeconds === 180 ? "selected" : ""}>180 Sekunden</option></select>
         </label>
         <label class="toggle-row"><span>Timer nach abgeschlossenem Satz automatisch starten</span><input name="autoTimer" type="checkbox" ${settings.autoTimer ? "checked" : ""}></label>
+        <label class="toggle-row"><span>Peak Week Bereich für Prep anzeigen</span><input name="prepMode" type="checkbox" ${settings.prepMode ? "checked" : ""}></label>
+        <p class="eyebrow setting-divider">Makroziele</p>
+        <div class="target-grid">
+          <label>Protein g<input required name="proteinTarget" type="number" min="0" value="${settings.proteinTarget}"></label>
+          <label>Carbs g<input required name="carbsTarget" type="number" min="0" value="${settings.carbsTarget}"></label>
+          <label>Fette g<input required name="fatTarget" type="number" min="0" value="${settings.fatTarget}"></label>
+          <label>Wasser L<input required name="waterTarget" type="number" min="0" step="0.1" value="${settings.waterTarget}"></label>
+        </div>
         <button class="primary-button" type="submit">Einstellungen speichern</button>
       </form>
     </article>
     <article class="card settings-card">
       <p class="eyebrow">Datenschutz & Backup</p><h3>Deine lokalen Daten</h3>
-      <p class="helper data-copy">Neue Check-ins, Workouts, Maße und Feedback werden derzeit nur im Browser dieses Geräts gespeichert. Deine Excel-Ausgangsdaten sind als App-Daten eingebunden.</p>
-      <div class="storage-stats"><span>${savedEntries.length} Check-ins</span><span>${workoutLogs.length} Workouts</span><span>${measurements.length} Messungen</span><span>${improvementNotes.length} Notizen</span></div>
+      <p class="helper data-copy">Neue Check-ins, Workouts, Maße, Nährwerte und Chatbilder werden derzeit nur im Browser dieses Geräts gespeichert. Deine Excel-Ausgangsdaten sind als App-Daten eingebunden.</p>
+      <div class="storage-stats"><span>${savedEntries.length} Check-ins</span><span>${workoutLogs.length} Workouts</span><span>${nutritionLogs.length} Ernährung</span><span>${chatMessages.length} Chats</span></div>
       <div class="backup-actions">
         <button class="primary-button" data-export>Backup exportieren</button>
         <label class="secondary-button file-button">Backup importieren<input id="backup-file" type="file" accept="application/json"></label>
@@ -438,7 +623,7 @@ function escapeHtml(text) {
 
 function render() {
   chartCount = 0;
-  const templates = { home: dashboard, training, progress, tracker, settings: settingsView };
+  const templates = { home: dashboard, training, progress, tracker, nutrition, peak: peakWeek, chat, settings: settingsView };
   app.innerHTML = templates[state.tab]();
   document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.tab === state.tab));
 }
@@ -517,6 +702,40 @@ function openMeasurement() {
   measurementDialog.showModal();
 }
 
+function openNutrition(date = todayIso()) {
+  nutritionForm.reset();
+  nutritionForm.date.value = date;
+  const existing = nutritionLogs.find((entry) => entry.date === date);
+  if (existing) {
+    ["calories", "protein", "carbs", "fat", "water"].forEach((key) => {
+      nutritionForm.elements[key].value = existing[key] ?? "";
+    });
+  }
+  nutritionDialog.showModal();
+}
+
+function compressChatImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return resolve(null);
+    const image = new Image();
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      image.src = reader.result;
+    });
+    reader.addEventListener("error", reject);
+    image.addEventListener("load", () => {
+      const scale = Math.min(1, 900 / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+      canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.72));
+    });
+    image.addEventListener("error", reject);
+    reader.readAsDataURL(file);
+  });
+}
+
 function exportBackup() {
   const backup = {
     version: 1,
@@ -524,6 +743,9 @@ function exportBackup() {
     entries: savedEntries,
     workouts: workoutLogs,
     measurements,
+    nutrition: nutritionLogs,
+    messages: chatMessages,
+    peakChecks,
     notes: improvementNotes,
     settings,
   };
@@ -543,11 +765,18 @@ function importBackup(file) {
     savedEntries.splice(0, savedEntries.length, ...backup.entries);
     workoutLogs.splice(0, workoutLogs.length, ...backup.workouts);
     measurements.splice(0, measurements.length, ...(backup.measurements || []));
+    nutritionLogs.splice(0, nutritionLogs.length, ...(backup.nutrition || []));
+    chatMessages.splice(0, chatMessages.length, ...(backup.messages || []));
     improvementNotes.splice(0, improvementNotes.length, ...(backup.notes || []));
+    Object.keys(peakChecks).forEach((key) => delete peakChecks[key]);
+    Object.assign(peakChecks, backup.peakChecks || {});
     Object.assign(settings, backup.settings || {});
     localStorage.setItem("nh-training-entries", JSON.stringify(savedEntries));
     localStorage.setItem("nh-workout-logs", JSON.stringify(workoutLogs));
     localStorage.setItem("nh-body-measurements", JSON.stringify(measurements));
+    localStorage.setItem("nh-nutrition-logs", JSON.stringify(nutritionLogs));
+    localStorage.setItem("nh-chat-messages", JSON.stringify(chatMessages));
+    localStorage.setItem("nh-peak-checks", JSON.stringify(peakChecks));
     localStorage.setItem("nh-improvement-notes", JSON.stringify(improvementNotes));
     persistSettings();
     refreshEntries();
@@ -578,10 +807,22 @@ app.addEventListener("click", (event) => {
   const removeNote = event.target.closest("[data-remove-note]");
   const theme = event.target.closest("[data-theme]");
   const exercise = event.target.closest("[data-exercise]");
+  const nutritionWeek = event.target.closest("[data-nutrition-week]");
+  const editNutrition = event.target.closest("[data-edit-nutrition]");
+  const peakDay = event.target.closest("[data-peak-day]");
+  const peakTask = event.target.closest("[data-peak-task]");
   if (start) return openWorkout(start.dataset.startSession);
   if (event.target.closest("[data-new-entry]")) return openEntry();
   if (event.target.closest("[data-new-measurement]")) return openMeasurement();
+  if (event.target.closest("[data-new-nutrition]")) return openNutrition();
+  if (editNutrition) return openNutrition(editNutrition.dataset.editNutrition);
   if (event.target.closest("[data-export]")) return exportBackup();
+  if (event.target.closest("[data-enable-prep]")) {
+    settings.prepMode = true;
+    settings.phase = "Prep";
+    persistSettings();
+    return render();
+  }
   if (removeNote) {
     const index = improvementNotes.findIndex((note) => note.id === removeNote.dataset.removeNote);
     if (index >= 0) improvementNotes.splice(index, 1);
@@ -598,6 +839,20 @@ app.addEventListener("click", (event) => {
     state.exerciseName = exercise.dataset.exercise;
     return render();
   }
+  if (nutritionWeek) {
+    state.nutritionWeek += Number(nutritionWeek.dataset.nutritionWeek);
+    return render();
+  }
+  if (peakDay) {
+    localStorage.setItem("nh-peak-day", peakDay.dataset.peakDay);
+    return render();
+  }
+  if (peakTask) {
+    const key = peakTask.dataset.peakTask;
+    peakChecks[key] = !peakChecks[key];
+    localStorage.setItem("nh-peak-checks", JSON.stringify(peakChecks));
+    return render();
+  }
   if (link) state.tab = link.dataset.go;
   if (meso) {
     state.meso = Number(meso.dataset.meso);
@@ -612,7 +867,7 @@ app.addEventListener("click", (event) => {
   if (link || meso || weekShift || metric) render();
 });
 
-app.addEventListener("submit", (event) => {
+app.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (event.target.id === "feedback-form") {
     const noteText = new FormData(event.target).get("note").trim();
@@ -623,17 +878,54 @@ app.addEventListener("submit", (event) => {
   }
   if (event.target.id === "settings-form") {
     const form = new FormData(event.target);
+    settings.phase = form.get("phase");
     settings.goalMin = Number(form.get("goalMin"));
     settings.goalMax = Math.max(settings.goalMin, Number(form.get("goalMax")));
     settings.restSeconds = Number(form.get("restSeconds"));
     settings.autoTimer = form.has("autoTimer");
+    settings.prepMode = form.has("prepMode");
+    settings.proteinTarget = Number(form.get("proteinTarget"));
+    settings.carbsTarget = Number(form.get("carbsTarget"));
+    settings.fatTarget = Number(form.get("fatTarget"));
+    settings.waterTarget = Number(form.get("waterTarget"));
     persistSettings();
+    render();
+  }
+  if (event.target.id === "chat-form") {
+    const form = new FormData(event.target);
+    const file = event.target.elements.image.files[0];
+    const text = String(form.get("text") || "").trim();
+    if (!text && !file) return;
+    let image = null;
+    try {
+      image = await compressChatImage(file);
+    } catch (error) {
+      window.alert("Das Bild konnte nicht verarbeitet werden.");
+      return;
+    }
+    chatMessages.push({
+      id: String(Date.now()),
+      date: todayIso(),
+      sender: "me",
+      text: text || "Check-in Bild gesendet.",
+      attachment: image ? { label: file.name, image } : null,
+    });
+    try {
+      localStorage.setItem("nh-chat-messages", JSON.stringify(chatMessages));
+    } catch (error) {
+      chatMessages.pop();
+      window.alert("Das Bild ist zu groß für den lokalen Speicher. Bitte ein kleineres Foto wählen.");
+    }
     render();
   }
 });
 
 app.addEventListener("change", (event) => {
   if (event.target.id === "backup-file") importBackup(event.target.files[0]);
+  if (event.target.name === "image" && event.target.closest("#chat-form")) {
+    const hint = event.target.closest("#chat-form").querySelector("[data-attachment-hint]");
+    hint.textContent = event.target.files[0] ? `Bereit: ${event.target.files[0].name}` : "Fotos werden lokal in diesem Demo-Chat gespeichert.";
+  }
 });
 
 entryForm.addEventListener("input", (event) => {
@@ -643,6 +935,7 @@ entryForm.addEventListener("input", (event) => {
 
 document.querySelector("[data-close-dialog]").addEventListener("click", () => dialog.close());
 document.querySelector("[data-close-measurement]").addEventListener("click", () => measurementDialog.close());
+document.querySelector("[data-close-nutrition]").addEventListener("click", () => nutritionDialog.close());
 
 entryForm.addEventListener("submit", () => {
   const form = new FormData(entryForm);
@@ -676,6 +969,24 @@ measurementForm.addEventListener("submit", () => {
   });
   localStorage.setItem("nh-body-measurements", JSON.stringify(measurements));
   state.tab = "progress";
+  render();
+});
+
+nutritionForm.addEventListener("submit", () => {
+  const form = new FormData(nutritionForm);
+  const entry = {
+    date: form.get("date"),
+    calories: Number(form.get("calories")),
+    protein: Number(form.get("protein")),
+    carbs: Number(form.get("carbs")),
+    fat: Number(form.get("fat")),
+    water: form.get("water") ? Number(form.get("water")) : 0,
+  };
+  const existingIndex = nutritionLogs.findIndex((log) => log.date === entry.date);
+  if (existingIndex >= 0) nutritionLogs[existingIndex] = entry;
+  else nutritionLogs.push(entry);
+  localStorage.setItem("nh-nutrition-logs", JSON.stringify(nutritionLogs));
+  state.tab = "nutrition";
   render();
 });
 

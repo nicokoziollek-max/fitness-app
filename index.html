@@ -28,7 +28,7 @@
         <button class="nav-item" data-tab="training"><span class="nav-icon">+</span>Training</button>
         <button class="nav-item" data-tab="progress"><span class="nav-icon">↗</span>Analyse</button>
         <button class="nav-item" data-tab="tracker"><span class="nav-icon">◷</span>Tracker</button>
-        <button class="nav-item" data-tab="settings"><span class="nav-icon">&#9881;</span>Mehr</button>
+        <button class="nav-item" data-tab="chat"><span class="nav-icon">&#9993;</span>Chat</button>
       </nav>
     </div>
     <dialog id="entry-dialog">
@@ -92,6 +92,28 @@
         </div>
         <label>Notiz<input name="note" type="text" maxlength="100" placeholder="z. B. morgens, nüchtern"></label>
         <button class="primary-button" type="submit">Messung speichern</button>
+      </form>
+    </dialog>
+    <dialog id="nutrition-dialog">
+      <form id="nutrition-form" method="dialog" class="entry-form">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Ernährung</p>
+            <h2>Makros erfassen</h2>
+          </div>
+          <button type="button" class="icon-button" data-close-nutrition aria-label="Schließen">&times;</button>
+        </div>
+        <label>Datum<input required name="date" type="date"></label>
+        <div class="input-row">
+          <label>Kalorien<input required name="calories" type="number" min="0"></label>
+          <label>Protein (g)<input required name="protein" type="number" min="0"></label>
+        </div>
+        <div class="input-row">
+          <label>Kohlenhydrate (g)<input required name="carbs" type="number" min="0"></label>
+          <label>Fette (g)<input required name="fat" type="number" min="0"></label>
+        </div>
+        <label>Wasser (Liter)<input name="water" type="number" min="0" step="0.1"></label>
+        <button class="primary-button" type="submit">Nährwerte speichern</button>
       </form>
     </dialog>
     <script src="data/fitness-data.js"></script>

@@ -1177,6 +1177,437 @@ textarea {
   text-decoration: none;
 }
 
+.dashboard-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+  margin: 12px 0 18px;
+}
+
+.shortcut-card {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  text-align: left;
+}
+
+.shortcut-card span,
+.shortcut-card small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.shortcut-card strong {
+  font-size: 15px;
+}
+
+.shortcut-card.accent {
+  border-color: rgba(var(--accent-rgb), 0.22);
+  background: rgba(var(--accent-rgb), 0.06);
+}
+
+.weekly-review {
+  margin-top: 12px;
+}
+
+.status-pill,
+.private-pill {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.private-pill {
+  background: rgba(255, 188, 116, 0.12);
+  color: var(--orange);
+}
+
+.review-stats,
+.macro-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.review-stats div,
+.macro-grid article {
+  padding: 10px 5px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  text-align: center;
+}
+
+.review-stats strong,
+.review-stats span,
+.macro-grid strong,
+.macro-grid span,
+.macro-grid small {
+  display: block;
+}
+
+.review-stats strong,
+.macro-grid strong {
+  font-size: 15px;
+}
+
+.review-stats span,
+.macro-grid span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.macro-grid {
+  margin-bottom: 12px;
+}
+
+.macro-grid article {
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.macro-grid small {
+  margin-top: 5px;
+  color: var(--accent);
+  font-size: 9px;
+}
+
+.week-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.nutrition-days {
+  margin: 12px 0;
+}
+
+.nutrition-day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.nutrition-day p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.target-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+}
+
+.target-grid input {
+  padding-right: 5px;
+  padding-left: 5px;
+  text-align: center;
+}
+
+.setting-divider {
+  margin-top: 7px;
+}
+
+.peak-enable {
+  margin-top: 18px;
+}
+
+.peak-days {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  margin: 13px 0;
+  scrollbar-width: none;
+}
+
+.peak-days::-webkit-scrollbar {
+  display: none;
+}
+
+.peak-day {
+  display: grid;
+  flex: 0 0 57px;
+  gap: 5px;
+  padding: 10px 5px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  text-align: center;
+}
+
+.peak-day span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.peak-day.active {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-dark);
+}
+
+.peak-day.active span {
+  color: var(--accent-dark);
+}
+
+.peak-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.peak-metrics div {
+  padding: 11px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.peak-metrics span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.peak-metrics strong {
+  font-size: 14px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+  text-align: left;
+}
+
+.checklist-item span {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--accent-dark);
+  font-size: 13px;
+}
+
+.checklist-item.done {
+  color: var(--muted);
+}
+
+.checklist-item.done span {
+  border-color: transparent;
+  background: var(--accent);
+}
+
+.photo-cta {
+  width: 100%;
+  margin-top: 15px;
+}
+
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.coach-avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border: 1px solid rgba(var(--accent-rgb), 0.24);
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.online-status {
+  color: var(--teal);
+  font-size: 11px;
+}
+
+.chat-context {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chat-context button {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.chat-thread {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.chat-date {
+  margin: 8px 0 2px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.message-row {
+  display: flex;
+}
+
+.message-row.mine {
+  justify-content: flex-end;
+}
+
+.message {
+  max-width: 86%;
+  padding: 11px 12px 8px;
+  border-radius: 6px 17px 17px 17px;
+  background: var(--surface-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.message-row.mine .message {
+  border-radius: 17px 6px 17px 17px;
+  background: rgba(var(--accent-rgb), 0.15);
+}
+
+.message time {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+}
+
+.message-attachment {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 9px;
+  padding: 8px;
+  border-radius: 11px;
+  background: rgba(9, 16, 14, 0.25);
+}
+
+.message-attachment img {
+  width: 76px;
+  height: 76px;
+  border-radius: 9px;
+  object-fit: cover;
+}
+
+.message-attachment strong,
+.message-attachment small {
+  display: block;
+}
+
+.message-attachment strong {
+  font-size: 11px;
+}
+
+.message-attachment small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.photo-mark {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--surface-3);
+  color: var(--accent);
+  font-size: 21px;
+}
+
+.chat-composer {
+  display: grid;
+  grid-template-columns: 43px 1fr auto;
+  align-items: end;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.attach-button {
+  position: relative;
+  display: grid;
+  width: 43px;
+  height: 43px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--accent);
+  font-size: 25px;
+}
+
+.attach-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.chat-input input {
+  margin: 0;
+}
+
+.send-button {
+  height: 43px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.attachment-hint {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 10px;
+}
+
 @media (min-width: 620px) {
   .app-shell {
     margin-top: 18px;

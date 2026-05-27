@@ -31,6 +31,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: Inter, "Segoe UI", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
@@ -42,6 +43,11 @@ select {
 button {
   color: inherit;
   cursor: pointer;
+  transition: transform 120ms ease, background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+button:active {
+  transform: scale(0.98);
 }
 
 .ambient {
@@ -91,6 +97,22 @@ button {
 
 .topbar {
   margin-bottom: 26px;
+}
+
+#app > * {
+  animation: content-rise 220ms ease both;
+}
+
+@keyframes content-rise {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 h1,
@@ -154,6 +176,34 @@ h3 {
   border-radius: 27px;
   background: linear-gradient(130deg, #19251b, #101915);
   box-shadow: var(--shadow);
+}
+
+.compact-hero {
+  padding-bottom: 16px;
+}
+
+.hero-compact-row {
+  display: grid;
+  grid-template-columns: 125px 1fr;
+  align-items: center;
+  gap: 9px;
+  margin-top: 7px;
+}
+
+.compact-hero .hero-title {
+  margin-top: 0;
+  font-size: 36px;
+}
+
+.compact-hero .chart {
+  height: 70px;
+  margin-top: 0;
+}
+
+.compact-hero .subtle {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .hero::after {
@@ -288,6 +338,44 @@ h3 {
   border: 1px solid rgba(var(--accent-rgb), 0.16);
   border-radius: var(--radius);
   background: linear-gradient(130deg, var(--surface-2), var(--surface));
+}
+
+.tracker-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.tracker-actions button {
+  padding: 12px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.list-label {
+  margin: 4px 0 11px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.compact-feedback {
+  margin-top: 16px;
+}
+
+.daily-focus {
+  margin-top: 12px;
+}
+
+.daily-focus .compact-progress {
+  margin-top: 10px;
 }
 
 .action-card h3 {
@@ -535,6 +623,34 @@ h3 {
   padding: 16px;
 }
 
+.compact-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--surface);
+}
+
+.compact-status strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.compact-status span {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.compact-status.warning span {
+  color: var(--orange);
+}
+
 .goal-card {
   margin: 12px 0;
 }
@@ -725,7 +841,7 @@ h3 {
   display: flex;
   max-width: 480px;
   margin: 0 auto;
-  padding: 10px 13px calc(10px + env(safe-area-inset-bottom));
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
   background: rgba(9, 16, 14, 0.94);
   backdrop-filter: blur(20px);
@@ -742,12 +858,16 @@ h3 {
 .nav-icon {
   display: block;
   margin-bottom: 5px;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 20px;
 }
 
 .nav-item.active {
   color: var(--accent);
+}
+
+.nav-item.active .nav-icon {
+  transform: translateY(-1px);
 }
 
 dialog {
@@ -1181,20 +1301,19 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 9px;
-  margin: 12px 0 18px;
+  margin: 10px 0;
 }
 
 .shortcut-card {
   display: grid;
-  gap: 5px;
-  padding: 14px;
+  gap: 4px;
+  padding: 12px 13px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface);
   text-align: left;
 }
 
-.shortcut-card span,
 .shortcut-card small {
   color: var(--muted);
   font-size: 11px;
@@ -1207,6 +1326,63 @@ textarea {
 .shortcut-card.accent {
   border-color: rgba(var(--accent-rgb), 0.22);
   background: rgba(var(--accent-rgb), 0.06);
+}
+
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-top: 10px;
+  padding: 11px;
+}
+
+.quick-stats div {
+  padding: 6px 3px;
+  text-align: center;
+}
+
+.quick-stats strong,
+.quick-stats span {
+  display: block;
+}
+
+.quick-stats strong {
+  font-size: 16px;
+}
+
+.quick-stats span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.page-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.back-button {
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.add-button {
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 11px;
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .weekly-review {
@@ -1471,6 +1647,17 @@ textarea {
   font-size: 12px;
 }
 
+.history-button {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .chat-thread {
   display: grid;
   gap: 8px;
@@ -1558,6 +1745,9 @@ textarea {
 }
 
 .chat-composer {
+  position: sticky;
+  bottom: 78px;
+  z-index: 2;
   display: grid;
   grid-template-columns: 43px 1fr auto;
   align-items: end;
@@ -1566,6 +1756,7 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 18px;
   background: var(--surface);
+  box-shadow: 0 -10px 22px rgba(9, 16, 14, 0.5);
 }
 
 .attach-button {
@@ -1612,5 +1803,14 @@ textarea {
   .app-shell {
     margin-top: 18px;
     border-radius: 32px 32px 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }

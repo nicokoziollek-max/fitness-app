@@ -44,6 +44,8 @@ const state = {
   metric: "weight",
   exerciseName: null,
   nutritionWeek: 0,
+  chatExpanded: false,
+  feedbackOpen: false,
   entries: [],
 };
 
@@ -243,19 +245,17 @@ function dashboard() {
   const completed = currentWeekLogs().length;
   const workoutCount = activeSessions().length;
   return `
-    <section class="hero">
+    <section class="hero compact-hero">
       <p class="eyebrow">${settings.phase} - Gewichtstrend 7 Tage</p>
-      <div class="hero-title">${formatValue(today.weight)}<span class="unit">kg</span></div>
-      <p class="subtle">Zuletzt erfasst am ${formatDate(today.date)}</p>
-      <div class="trend">${trend >= 0 ? "+" : ""}${formatValue(trend)} kg gegenüber Vorwoche</div>
-      ${chartSvg(valuesFor("weight", 28))}
+      <div class="hero-compact-row">
+        <div><div class="hero-title">${formatValue(today.weight)}<span class="unit">kg</span></div><p class="subtle">${formatDate(today.date)} · ${trend >= 0 ? "+" : ""}${formatValue(trend)} kg vs. Vorwoche</p></div>
+        ${chartSvg(valuesFor("weight", 21))}
+      </div>
     </section>
-    <article class="action-card">
-      <p class="eyebrow">Heute - Meso ${state.meso} Woche ${state.week}</p>
-      <h3>${workoutName(session)}</h3>
-      <p class="helper">${sum(session.exercises.map((exercise) => exercise.sets))} Arbeitssätze - ${session.exercises.length} Übungen bereit</p>
+    <article class="action-card daily-focus">
+      <div class="section-head"><div><p class="eyebrow">Heute · Woche ${state.week}</p><h3>${workoutName(session)}</h3></div><span class="status-pill">${completed}/${workoutCount}</span></div>
+      <p class="helper">${sum(session.exercises.map((exercise) => exercise.sets))} Arbeitssätze · ${session.exercises.length} Übungen</p>
       <div class="compact-progress">
-        <p class="helper">${completed} von ${workoutCount} Sessions diese Woche abgeschlossen</p>
         <div class="progress-track"><span style="width:${Math.min(100, completed / workoutCount * 100)}%"></span></div>
       </div>
       <div class="action-buttons">
@@ -263,17 +263,19 @@ function dashboard() {
         <button class="secondary-button" data-new-entry>Check-in</button>
       </div>
     </article>
-    ${goalCard()}
+    <article class="compact-status ${growthStatus().tone}">
+      <div><p class="eyebrow">Aufbauziel</p><strong>${growthStatus().title}</strong></div>
+      <span>${weeklySlope() >= 0 ? "+" : ""}${formatValue(weeklySlope())} kg/W</span>
+    </article>
     <div class="dashboard-shortcuts">
-      <button class="shortcut-card" data-go="nutrition"><span>Nährwerte</span><strong>Makros & Wasser</strong><small>Woche auswerten</small></button>
-      <button class="shortcut-card ${settings.prepMode ? "accent" : ""}" data-go="peak"><span>Show Day</span><strong>Peak Week</strong><small>${settings.prepMode ? "Checkliste aktiv" : "Prep-Modus aus"}</small></button>
+      <button class="shortcut-card" data-go="nutrition"><strong>Ernährung</strong><small>Makros & Wasser</small></button>
+      <button class="shortcut-card ${settings.prepMode ? "accent" : ""}" data-go="peak"><strong>Peak Week</strong><small>${settings.prepMode ? "Heute prüfen" : "Inaktiv"}</small></button>
     </div>
-    <div class="kpi-grid">
-      <article class="kpi"><p class="eyebrow">Kalorien Ø 7T</p><strong>${formatValue(average(valuesFor("calories", 7)), 0)}</strong><p class="helper">kcal / Tag</p></article>
-      <article class="kpi good"><p class="eyebrow">Schlaf Ø 7T</p><strong>${formatValue(average(valuesFor("sleep", 7)))} h</strong><p class="helper">Regeneration</p></article>
-      <article class="kpi"><p class="eyebrow">Schritte Ø 7T</p><strong>${formatValue(average(valuesFor("steps", 7)), 0)}</strong><p class="helper">Aktivität</p></article>
-      <article class="kpi warm"><p class="eyebrow">Workouts</p><strong>${workoutLogs.length}</strong><p class="helper">geloggt</p></article>
-    </div>`;
+    <article class="card quick-stats">
+      <div><strong>${formatValue(average(valuesFor("calories", 7)), 0)}</strong><span>kcal</span></div>
+      <div><strong>${formatValue(average(valuesFor("sleep", 7)))} h</strong><span>Schlaf</span></div>
+      <div><strong>${formatValue(average(valuesFor("steps", 7)), 0)}</strong><span>Schritte</span></div>
+    </article>`;
 }
 
 function training() {
@@ -446,23 +448,24 @@ function tracker() {
   const recent = [...state.entries].reverse().slice(0, 14);
   const notes = [...improvementNotes].reverse();
   return `
-    <div class="section-head"><div><p class="eyebrow">Data Tracker</p><h2>Tägliche Logs</h2></div><div class="row"><button class="link-button" data-new-measurement>+ Maße</button><button class="link-button" data-new-entry>+ Check-in</button></div></div>
-    <article class="card"><p class="helper">${state.entries.length} Check-ins - Datenbasis ${formatDate(state.entries[0].date)} bis ${formatDate(latest().date)}</p></article>
-    ${measurementCard()}
-    <article class="card feedback-card">
-      <div class="section-head"><div><p class="eyebrow">App Feedback</p><h3>Verbesserungen notieren</h3></div><span class="helper">${notes.length} gespeichert</span></div>
-      <form id="feedback-form" class="feedback-form">
-        <label>Anmerkung<textarea name="note" rows="3" maxlength="500" placeholder="Was soll an der App verbessert werden?" required></textarea></label>
-        <button class="primary-button" type="submit">Bemerkung speichern</button>
-      </form>
-      <p class="storage-note">Aktuell nur lokal auf diesem Gerät gespeichert. Backup unter Mehr erstellen.</p>
-      <div class="feedback-list">${notes.length ? notes.map((note) => `
-        <div class="feedback-item"><div class="row"><strong>${formatDate(note.date)}</strong><button type="button" class="remove-note" data-remove-note="${note.id}">Löschen</button></div><p>${escapeHtml(note.text)}</p></div>`).join("") : `<p class="helper">Noch keine Bemerkungen gespeichert.</p>`}</div>
-    </article>
+    <div class="section-head"><div><p class="eyebrow">Check-in</p><h2>Deine Daten</h2></div><button class="add-button" data-new-entry>+ Heute</button></div>
+    <div class="tracker-actions"><button data-new-measurement>Maße erfassen</button><button data-go="nutrition">Makros eintragen</button></div>
+    <p class="list-label">Letzte Einträge</p>
     ${recent.map((entry) => `<article class="day-card">
       <div><strong>${formatDate(entry.date)} ${entry.session ? `- ${entry.session}` : ""}</strong><div class="day-meta"><span>${entry.sleep ? `${formatValue(entry.sleep)} h Schlaf` : "Kein Schlaf"}</span><span>${entry.steps ? `${formatValue(entry.steps, 0)} Schritte` : "Keine Schritte"}</span>${entry.energy ? `<span>Energie ${entry.energy}/10</span>` : ""}</div></div>
       <span class="weight">${formatValue(entry.weight)} kg</span>
-    </article>`).join("")}`;
+    </article>`).join("")}
+    ${measurementCard()}
+    <article class="card feedback-card compact-feedback">
+      <div class="section-head"><div><p class="eyebrow">App Feedback</p><h3>Verbesserungsidee</h3></div><button class="link-button" data-toggle-feedback>${state.feedbackOpen ? "Schließen" : "+ Notiz"}</button></div>
+      ${state.feedbackOpen ? `<form id="feedback-form" class="feedback-form">
+        <label>Anmerkung<textarea name="note" rows="3" maxlength="500" placeholder="Was soll an der App verbessert werden?" required></textarea></label>
+        <button class="primary-button" type="submit">Bemerkung speichern</button>
+      </form>
+      <p class="storage-note">Aktuell nur lokal auf diesem Gerät gespeichert.</p>
+      <div class="feedback-list">${notes.length ? notes.map((note) => `
+        <div class="feedback-item"><div class="row"><strong>${formatDate(note.date)}</strong><button type="button" class="remove-note" data-remove-note="${note.id}">Löschen</button></div><p>${escapeHtml(note.text)}</p></div>`).join("") : `<p class="helper">Noch keine Bemerkungen gespeichert.</p>`}</div>` : `<p class="helper">${notes.length ? `${notes.length} Idee(n) gespeichert.` : "Notiere Vorschläge nur, wenn du etwas verbessern möchtest."}</p>`}
+    </article>`;
 }
 
 function nutrition() {
@@ -475,10 +478,10 @@ function nutrition() {
   const averageFor = (key) => average(weekLogs.map((entry) => entry[key]));
   const endDate = days.at(-1).date;
   return `
-    <div class="section-head"><div><p class="eyebrow">Ernährung</p><h2>Makro Tracker</h2></div><button class="link-button" data-new-nutrition>+ Eintrag</button></div>
+    <div class="page-head"><button class="back-button" data-go="home" aria-label="Zurück">&larr;</button><div><p class="eyebrow">Ernährung</p><h2>Makros</h2></div><button class="add-button" data-new-nutrition>+ Eintrag</button></div>
     <article class="card week-picker">
       <button class="secondary-button" data-nutrition-week="-1">&larr;</button>
-      <div><p class="eyebrow">Wochenansicht</p><h3>${formatDate(days[0].date)} - ${formatDate(endDate)}</h3></div>
+      <div><p class="eyebrow">Diese Woche</p><h3>${formatDate(days[0].date)} - ${formatDate(endDate)}</h3></div>
       <button class="secondary-button" data-nutrition-week="1">&rarr;</button>
     </article>
     <div class="macro-grid">
@@ -489,7 +492,7 @@ function nutrition() {
     </div>
     <article class="card">
       <div class="section-head"><div><p class="eyebrow">Wasserziel</p><h3>${weekLogs.length ? `${formatValue(averageFor("water"))} L Ø` : "Noch offen"}</h3></div><strong class="goal-rate">${settings.waterTarget} L / Tag</strong></div>
-      <div class="progress-track"><span style="width:${Math.min(100, averageFor("water") / settings.waterTarget * 100)}%"></span></div>
+      <div class="progress-track"><span style="width:${settings.waterTarget ? Math.min(100, averageFor("water") / settings.waterTarget * 100) : 0}%"></span></div>
     </article>
     <section class="nutrition-days">${days.map(({ date, log }) => `<article class="nutrition-day">
       <div><strong>${formatDate(date)}</strong><p>${log ? `${log.calories} kcal · ${log.protein} P · ${log.carbs} C · ${log.fat} F · ${formatValue(log.water)} L` : "Noch kein Eintrag"}</p></div>
@@ -503,7 +506,7 @@ function nutrition() {
 
 function peakWeek() {
   if (!settings.prepMode) {
-    return `<div class="section-head"><div><p class="eyebrow">Show Day</p><h2>Peak Week</h2></div></div>
+    return `<div class="page-head"><button class="back-button" data-go="home" aria-label="Zurück">&larr;</button><div><p class="eyebrow">Show Day</p><h2>Peak Week</h2></div></div>
       <article class="card"><h3>Nur für Prep-Athleten sichtbar</h3><p class="helper data-copy">Aktiviere den Prep-Modus in den Einstellungen, um Peak-Week-Plan, Wasser, Salz und Tageschecklisten zu sehen.</p><button class="primary-button peak-enable" data-enable-prep>Prep-Modus aktivieren</button></article>`;
   }
   const plan = [
@@ -520,7 +523,7 @@ function peakWeek() {
   const tasks = ["Morgengewicht dokumentieren", "Check-in Fotos senden", "Wasser & Salz abhaken", "Look/Feedback mit Coach prüfen"];
   const completed = tasks.filter((task, index) => peakChecks[`${selectedIndex}-${index}`]).length;
   return `
-    <div class="section-head"><div><p class="eyebrow">Privat · Demo-Plan</p><h2>Peak Week</h2></div><span class="status-pill">${completed}/${tasks.length}</span></div>
+    <div class="page-head"><button class="back-button" data-go="home" aria-label="Zurück">&larr;</button><div><p class="eyebrow">Privat · Demo-Plan</p><h2>Peak Week</h2></div><span class="status-pill">${completed}/${tasks.length}</span></div>
     <div class="peak-days">${plan.map((day, index) => `<button class="peak-day ${index === selectedIndex ? "active" : ""}" data-peak-day="${index}"><span>${day.label.split(" · ")[0]}</span><strong>${day.label.split(" · ")[1]}</strong></button>`).join("")}</div>
     <article class="card peak-summary">
       <div class="section-head"><div><p class="eyebrow">Tagesplan</p><h3>${selected.label}</h3></div><span class="private-pill">Privat</span></div>
@@ -540,7 +543,8 @@ function peakWeek() {
 }
 
 function chat() {
-  const timeline = chatTimeline();
+  const fullTimeline = chatTimeline();
+  const timeline = state.chatExpanded ? fullTimeline : fullTimeline.slice(-4);
   let previousDate = "";
   return `
     <div class="chat-head">
@@ -551,6 +555,7 @@ function chat() {
       <span>Aktuelle Phase: ${settings.phase}</span>
       <button data-go="peak">Peak Week teilen</button>
     </article>
+    ${!state.chatExpanded && fullTimeline.length > timeline.length ? `<button class="history-button" data-show-history>Ältere Nachrichten anzeigen</button>` : ""}
     <section class="chat-thread">${timeline.map((message) => {
       const dateDivider = message.date !== previousDate ? `<p class="chat-date">${formatDate(message.date)}</p>` : "";
       previousDate = message.date;
@@ -569,7 +574,7 @@ function chat() {
 
 function settingsView() {
   return `
-    <div class="section-head"><div><p class="eyebrow">Personalisierung</p><h2>Mehr & Einstellungen</h2></div></div>
+    <div class="page-head"><button class="back-button" data-go="home" aria-label="Zurück">&larr;</button><div><p class="eyebrow">Personalisierung</p><h2>Einstellungen</h2></div></div>
     <article class="card settings-card">
       <p class="eyebrow">Design</p><h3>Brandcolor</h3>
       <div class="theme-grid">${Object.entries(themes).map(([key, theme]) => `<button class="theme-option ${settings.theme === key ? "active" : ""}" data-theme="${key}"><span style="background:${theme.accent}"></span>${theme.label}</button>`).join("")}</div>
@@ -594,7 +599,7 @@ function settingsView() {
           <label>Protein g<input required name="proteinTarget" type="number" min="0" value="${settings.proteinTarget}"></label>
           <label>Carbs g<input required name="carbsTarget" type="number" min="0" value="${settings.carbsTarget}"></label>
           <label>Fette g<input required name="fatTarget" type="number" min="0" value="${settings.fatTarget}"></label>
-          <label>Wasser L<input required name="waterTarget" type="number" min="0" step="0.1" value="${settings.waterTarget}"></label>
+          <label>Wasser L<input required name="waterTarget" type="number" min="0.1" step="0.1" value="${settings.waterTarget}"></label>
         </div>
         <button class="primary-button" type="submit">Einstellungen speichern</button>
       </form>
@@ -706,10 +711,17 @@ function openNutrition(date = todayIso()) {
   nutritionForm.reset();
   nutritionForm.date.value = date;
   const existing = nutritionLogs.find((entry) => entry.date === date);
+  const previous = [...nutritionLogs].sort((a, b) => a.date.localeCompare(b.date)).at(-1);
   if (existing) {
     ["calories", "protein", "carbs", "fat", "water"].forEach((key) => {
       nutritionForm.elements[key].value = existing[key] ?? "";
     });
+  } else {
+    nutritionForm.elements.calories.value = previous?.calories ?? "";
+    nutritionForm.elements.protein.value = previous?.protein ?? settings.proteinTarget;
+    nutritionForm.elements.carbs.value = previous?.carbs ?? settings.carbsTarget;
+    nutritionForm.elements.fat.value = previous?.fat ?? settings.fatTarget;
+    nutritionForm.elements.water.value = previous?.water ?? settings.waterTarget;
   }
   nutritionDialog.showModal();
 }
@@ -817,6 +829,14 @@ app.addEventListener("click", (event) => {
   if (event.target.closest("[data-new-nutrition]")) return openNutrition();
   if (editNutrition) return openNutrition(editNutrition.dataset.editNutrition);
   if (event.target.closest("[data-export]")) return exportBackup();
+  if (event.target.closest("[data-toggle-feedback]")) {
+    state.feedbackOpen = !state.feedbackOpen;
+    return render();
+  }
+  if (event.target.closest("[data-show-history]")) {
+    state.chatExpanded = true;
+    return render();
+  }
   if (event.target.closest("[data-enable-prep]")) {
     settings.prepMode = true;
     settings.phase = "Prep";
@@ -874,6 +894,7 @@ app.addEventListener("submit", async (event) => {
     if (!noteText) return;
     improvementNotes.push({ id: String(Date.now()), date: todayIso(), text: noteText });
     localStorage.setItem("nh-improvement-notes", JSON.stringify(improvementNotes));
+    state.feedbackOpen = false;
     render();
   }
   if (event.target.id === "settings-form") {

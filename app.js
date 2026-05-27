@@ -91,6 +91,10 @@ function calculateCalories(entry) {
   return protein * 4.1 + carbs * 4.1 + fats * 9.3;
 }
 
+function nutrientCalories(value, factor) {
+  return Number.isFinite(Number(value)) ? Number(value) * factor : null;
+}
+
 function percentOf(actual, target) {
   return target && Number.isFinite(Number(actual)) ? Math.round(Number(actual) / Number(target) * 100) : 0;
 }
@@ -218,9 +222,20 @@ function trackerNumber(field, value, unit, step = "1") {
 function qualitySlider(label, field, value) {
   const numeric = Number.isFinite(Number(value)) ? Number(value) : 5;
   return `<label class="quality-row">
-    <div><strong>${label}</strong><output data-slider-output="${field}">${numeric}</output></div>
+    <div class="quality-title"><strong>${label}</strong><span class="edit-icon">✎</span></div>
+    <output data-slider-output="${field}">${numeric}<small>/10</small></output>
     <input class="glow-slider" data-track-input="${field}" type="range" min="1" max="10" value="${numeric}">
+    <span class="slider-scale"><small>1</small><small>10</small></span>
   </label>`;
+}
+
+function metricIcon(type) {
+  const icons = {
+    steps: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 19c4 0 6-7 8-11l4 7 8 3c3 1 3 6-1 6H10c-3 0-5-2-5-5Z"/><path d="M12 21h12"/></svg>`,
+    weight: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="5" width="22" height="22" rx="5"/><path d="M12 13a5 5 0 0 1 8 0"/><path d="M16 13v4"/></svg>`,
+    sleep: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M24 22A11 11 0 0 1 13 6a11 11 0 1 0 11 16Z"/></svg>`,
+  };
+  return icons[type];
 }
 
 function trackerDay() {
@@ -228,33 +243,36 @@ function trackerDay() {
   const calories = calculateCalories(entry);
   const caloriePercent = Math.min(100, percentOf(calories, settings.calorieTarget));
   const nutrients = [
-    { label: "Proteine", field: "protein", value: entry.protein, target: settings.proteinTarget, unit: "g" },
-    { label: "Kohlenhydrate", field: "carbs", value: entry.carbs, target: settings.carbsTarget, unit: "g" },
-    { label: "Fette", field: "fats", value: entry.fats, target: settings.fatsTarget, unit: "g" },
-    { label: "Wasser", field: "water", value: entry.water, target: settings.waterTarget, unit: "l", step: "0.1" },
+    { label: "Proteine", field: "protein", value: entry.protein, unit: "g", factor: 4.1 },
+    { label: "Kohlenhydrate", field: "carbs", value: entry.carbs, unit: "g", factor: 4.1 },
+    { label: "Fette", field: "fats", value: entry.fats, unit: "g", factor: 9.3 },
   ];
   return `
     <article class="macro-card premium-card">
       <div class="card-top"><p class="eyebrow">Nährwerte & Wasser</p><span class="edit-icon">✎</span></div>
       <div class="nutrition-layout">
-        <div class="calorie-ring" data-calorie-ring style="--progress:${caloriePercent}%">
-          <div><strong data-calorie-total>${formatValue(calories, 0)}</strong><small>kcal</small><span data-calorie-percent>${percentOf(calories, settings.calorieTarget)} %</span></div>
+        <div class="calorie-overview">
+          <div class="calorie-ring" data-calorie-ring style="--progress:${caloriePercent}%"></div>
+          <div class="calorie-total"><strong data-calorie-total>${formatValue(calories, 0)}</strong><span>kcal</span><small>Gesamt</small></div>
         </div>
         <div class="nutrient-rows">
           ${nutrients.map((item) => `<div class="nutrient-row" data-nutrient-row="${item.field}">
             <span class="nutrient-name">${item.label}</span>
             <label><input data-track-input="${item.field}" type="number" step="${item.step || "1"}" value="${Number.isFinite(Number(item.value)) ? item.value : ""}" placeholder="-"><small>${item.unit}</small></label>
-            <div class="target-data"><strong><span data-actual="${item.field}">${formatValue(item.value, item.step ? 1 : 0)}</span> / ${formatValue(item.target, item.step ? 1 : 0)} ${item.unit}</strong><em data-rest="${item.field}">Rest ${remainingOf(item.value, item.target, item.step ? 1 : 0)} ${item.unit}</em></div>
+            <span class="macro-kcal" data-macro-kcal="${item.field}">${formatValue(nutrientCalories(item.value, item.factor), 0)} kcal</span>
           </div>`).join("")}
+          <div class="nutrient-row water-row" data-nutrient-row="water">
+            <span class="nutrient-name">Wasser</span>
+            <label><input data-track-input="water" type="number" step="0.1" value="${Number.isFinite(Number(entry.water)) ? entry.water : ""}" placeholder="-"><small>l</small></label>
+          </div>
         </div>
       </div>
-      <div class="calorie-target"><span>Ziel ${formatValue(settings.calorieTarget, 0)} kcal</span><span data-calorie-rest>Rest ${remainingOf(calories, settings.calorieTarget)} kcal</span></div>
       <p class="formula">Kalorien: (Proteine × 4,1) + (Kohlenhydrate × 4,1) + (Fette × 9,3)</p>
     </article>
     <div class="body-input-grid daily-parameters">
-      <article class="data-card"><div class="card-top"><span>Schritte</span><i>✎</i></div><b>⌁</b>${trackerNumber("steps", entry.steps, "", "1")}</article>
-      <article class="data-card"><div class="card-top"><span>Gewicht</span><i>✎</i></div><b>▣</b>${trackerNumber("weight", entry.weight, "kg", "0.1")}</article>
-      <article class="data-card sleep-card"><div class="card-top"><span>Schlaf</span><i>✎</i></div>${trackerNumber("sleep", entry.sleep, "h", "0.1")}<div class="sleep-quality-inline">${trackerNumber("sleepQuality", entry.sleepQuality, "/10", "1")}<small>Qualität</small></div></article>
+      <article class="data-card"><div class="card-top"><span>Schritte</span><i>✎</i></div><b class="steps-symbol">${metricIcon("steps")}</b>${trackerNumber("steps", entry.steps, "", "1")}<small>Schritte</small></article>
+      <article class="data-card"><div class="card-top"><span>Gewicht</span><i>✎</i></div><b class="weight-symbol">${metricIcon("weight")}</b>${trackerNumber("weight", entry.weight, "kg", "0.1")}<small>Aktuell</small></article>
+      <article class="data-card sleep-card"><div class="card-top"><span>Schlaf</span><i>✎</i></div><b class="sleep-symbol">${metricIcon("sleep")}</b>${trackerNumber("sleep", entry.sleep, "h", "0.1")}<small>Dauer</small><div class="sleep-quality-inline">${trackerNumber("sleepQuality", entry.sleepQuality, "/10", "1")}<small>Qualität</small></div></article>
     </div>
     <article class="quality-card premium-card">
       <div class="quality-grid">
@@ -493,6 +511,10 @@ function updateTrackerLiveValues() {
   if (ring) ring.style.setProperty("--progress", `${Math.min(100, caloriePercent)}%`);
   if (percent) percent.textContent = `${caloriePercent} %`;
   if (rest) rest.textContent = `Rest ${remainingOf(calories, settings.calorieTarget)} kcal`;
+  [["protein", 4.1], ["carbs", 4.1], ["fats", 9.3]].forEach(([field, factor]) => {
+    const output = app.querySelector(`[data-macro-kcal="${field}"]`);
+    if (output) output.textContent = `${formatValue(nutrientCalories(current[field], factor), 0)} kcal`;
+  });
   [
     ["protein", settings.proteinTarget, 0],
     ["carbs", settings.carbsTarget, 0],
@@ -632,7 +654,7 @@ app.addEventListener("input", (event) => {
     saveTrackerField(state.selectedDate, input.dataset.trackInput, input.value);
     updateTrackerLiveValues();
     const sliderOutput = app.querySelector(`[data-slider-output="${input.dataset.trackInput}"]`);
-    if (sliderOutput) sliderOutput.textContent = input.value;
+    if (sliderOutput) sliderOutput.innerHTML = `${input.value}<small>/10</small>`;
     const status = app.querySelector("[data-save-status]");
     if (status) {
       status.textContent = "Gespeichert";

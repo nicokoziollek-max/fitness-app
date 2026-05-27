@@ -1623,10 +1623,271 @@ dialog::backdrop {
   flex: .45;
 }
 
+/* Compact full-width client dashboard matching the mobile tracker reference. */
+.app-shell {
+  width: 100%;
+  max-width: none;
+  padding: max(25px, env(safe-area-inset-top)) 16px calc(82px + env(safe-area-inset-bottom));
+}
+
+.tracker-header {
+  margin-bottom: 22px;
+}
+
+.tracker-header > div {
+  margin-top: 14px;
+}
+
+.tracker-header h2 {
+  font-size: clamp(27px, 7.4vw, 33px);
+}
+
+.calendar-button {
+  width: 55px;
+  height: 55px;
+}
+
+.view-toggle {
+  margin-bottom: 25px;
+}
+
+.view-toggle button {
+  padding: 16px 11px;
+}
+
+.macro-card {
+  padding: 19px 16px 16px;
+}
+
+.nutrition-layout {
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 4px;
+  margin: 25px 0 18px;
+}
+
+.calorie-overview {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.calorie-ring {
+  width: 61px;
+  height: 61px;
+  flex: 0 0 61px;
+  justify-self: initial;
+}
+
+.calorie-ring::before {
+  width: 47px;
+  height: 47px;
+}
+
+.calorie-total strong {
+  display: inline;
+  color: var(--text);
+  font-size: 18px;
+  letter-spacing: -.055em;
+}
+
+.calorie-total span {
+  margin-left: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.calorie-total small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.nutrient-row {
+  grid-template-columns: minmax(78px, 1fr) 45px 56px;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.nutrient-name {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.nutrient-row input {
+  width: 37px;
+  font-size: 13px;
+}
+
+.macro-kcal {
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.water-row {
+  grid-template-columns: 1fr 45px;
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.formula {
+  margin-top: 0;
+  font-size: 9px;
+}
+
+.daily-parameters {
+  gap: 10px;
+}
+
+.data-card {
+  min-height: 160px;
+  padding: 13px 12px;
+}
+
+.data-card .card-top > span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.data-card b {
+  margin: 17px 0 12px;
+}
+
+.data-card b svg {
+  display: block;
+  width: 33px;
+  height: 33px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sleep-symbol svg {
+  fill: var(--accent);
+  stroke: none;
+}
+
+.daily-parameters .inline-input input {
+  font-size: 23px;
+}
+
+.data-card > small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sleep-symbol {
+  position: absolute;
+  top: 53px;
+  left: 12px;
+  margin: 0 !important;
+  font-size: 36px !important;
+}
+
+.sleep-card {
+  position: relative;
+}
+
+.sleep-card > .inline-input {
+  margin-top: 35px;
+  margin-left: 47px;
+}
+
+.quality-grid {
+  gap: 11px;
+}
+
+.quality-row {
+  min-height: 110px;
+  padding: 14px 14px 11px;
+}
+
+.quality-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+}
+
+.quality-row strong {
+  font-size: 9px;
+  letter-spacing: .1em;
+}
+
+.quality-row output {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--text);
+  font-size: 25px;
+}
+
+.quality-row output small {
+  margin-left: 3px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.wide-quality .quality-row {
+  min-height: 112px;
+}
+
+.slider-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  color: var(--muted);
+}
+
+.edit-all-button {
+  margin-top: 18px;
+}
+
+.save-status {
+  display: none;
+}
+
+.bottom-nav {
+  max-width: none;
+  padding-top: 9px;
+}
+
+.nav-item {
+  font-size: 10px;
+}
+
+.nav-icon {
+  font-size: 21px;
+  line-height: 22px;
+}
+
+@media (max-width: 365px) {
+  .app-shell {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .nutrition-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .calorie-overview {
+    justify-content: center;
+  }
+}
+
 @media (min-width: 620px) {
   .app-shell {
-    margin-top: 18px;
-    border-radius: 34px 34px 0 0;
+    margin-top: 0;
   }
 }
 

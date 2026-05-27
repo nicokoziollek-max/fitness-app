@@ -208,29 +208,7 @@ function pageTitle(eyebrow, title, action = "") {
 }
 
 function dashboard() {
-  const entry = entryFor(todayIso());
-  const display = Number.isFinite(entry.weight) ? entry : latestEntry();
-  const session = todaysSession();
-  const calories = calculateCalories(entry);
-  return `
-    ${pageTitle(settings.phase, "Heute")}
-    <article class="today-hero premium-card">
-      <div class="today-weight"><p class="eyebrow">Gewicht</p><strong>${formatValue(display.weight)} <small>kg</small></strong><span>${formatDate(display.date, true)}</span></div>
-      ${chartSvg(state.entries.slice(-14).map((item) => item.weight), "var(--accent)", true)}
-    </article>
-    <article class="focus-workout premium-card">
-      <div class="card-top"><p class="eyebrow">Heutige Einheit</p><button class="ghost-link" data-go="training">Plan</button></div>
-      <h3>${workoutName(session)}</h3>
-      <p>${session.exercises.length} Übungen · ${sum(session.exercises.map((exercise) => exercise.sets))} Sätze</p>
-      <button class="primary-button" data-start-session="${session.code}">Training starten</button>
-    </article>
-    <div class="today-grid">
-      <button class="metric-tile" data-go="tracker"><span>Kalorien</span><strong>${calories ? formatValue(calories, 0) : "-"}</strong><small>kcal</small></button>
-      <button class="metric-tile" data-go="tracker"><span>Wasser</span><strong>${formatValue(entry.water)}</strong><small>Liter</small></button>
-      <button class="metric-tile" data-go="tracker"><span>Schritte</span><strong>${formatValue(entry.steps, 0)}</strong><small>Steps</small></button>
-      <button class="metric-tile" data-go="tracker"><span>Schlaf</span><strong>${formatValue(entry.sleep)}</strong><small>Stunden</small></button>
-    </div>
-    <button class="quick-track" data-go="tracker"><span>Data Tracker</span><strong>Heutige Werte eintragen</strong><span class="arrow">→</span></button>`;
+  return tracker();
 }
 
 function trackerNumber(field, value, unit, step = "1") {
@@ -498,12 +476,12 @@ function render() {
   chartCount = 0;
   const screens = { home: dashboard, training, "training-analysis": trainingAnalysis, tracker, calendar, profile, chat };
   app.innerHTML = (screens[state.tab] || dashboard)();
-  document.querySelector(".app-shell").classList.toggle("tracker-screen", state.tab === "tracker");
+  document.querySelector(".app-shell").classList.toggle("tracker-screen", state.tab === "home" || state.tab === "tracker");
   document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.tab === state.tab));
 }
 
 function updateTrackerLiveValues() {
-  if (state.tab !== "tracker" || state.trackerView !== "day") return;
+  if ((state.tab !== "home" && state.tab !== "tracker") || state.trackerView !== "day") return;
   const current = entryFor(state.selectedDate);
   const calories = calculateCalories(current);
   const caloriePercent = percentOf(calories, settings.calorieTarget);
@@ -623,7 +601,6 @@ app.addEventListener("click", (event) => {
   }
   if (selectDate) {
     state.selectedDate = selectDate.dataset.selectDate;
-    state.tab = "tracker";
     state.trackerView = "day";
     return render();
   }
